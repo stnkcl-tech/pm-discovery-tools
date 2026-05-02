@@ -65,3 +65,13 @@ temp/
 
 # ── Generated Artifacts ────────────────────────────────────────────────────
 *.skill
+
+# ── Personal Discovery & Solution Results ──────────────────────────────────
+# These directories contain your private work product.
+# They are gitignored so forks start with a clean slate.
+Discovery/discoveries/
+Discovery/discovery-summary-*.md
+Solutions/
+
+# ── Kimi / IDE ─────────────────────────────────────────────────────────────
+.kimi/

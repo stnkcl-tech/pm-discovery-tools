@@ -30,12 +30,18 @@ from report_generator import (
 # ── Configuration ──────────────────────────────────────────────────────────
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-KIMI_BIN = (
-    "/Users/thagstn/Library/Application Support/Code/User/globalStorage/"
-    "moonshot-ai.kimi-code/bin/kimi/kimi"
-)
 DEFAULT_WORK_DIR = PROJECT_ROOT
 DEFAULT_TIMEOUT = 300  # seconds
+
+# Kimi CLI path: override with KIMI_BIN env var for portability.
+# Default path matches standard macOS Kimi Code CLI install location.
+KIMI_BIN = os.environ.get(
+    "KIMI_BIN",
+    os.path.expanduser(
+        "~/Library/Application Support/Code/User/globalStorage/"
+        "moonshot-ai.kimi-code/bin/kimi/kimi"
+    ),
+)
 
 # ── Flask App ──────────────────────────────────────────────────────────────
 
@@ -311,6 +317,8 @@ def save_discovery():
 @app.route("/api/generate-report/<folder>", methods=["POST"])
 def generate_discovery_report(folder):
     """Generate an HTML report for a discovery folder."""
+    # Prevent path traversal
+    folder = os.path.basename(folder)
     folder_path = os.path.join(DISCOVERIES_DIR, folder)
     if not os.path.exists(folder_path):
         return jsonify({"error": f"Folder not found: {folder}"}), 404
@@ -336,6 +344,10 @@ def get_discoveries():
 @app.route("/Discovery/discoveries/<path:filename>")
 def serve_discovery(filename):
     """Serve discovery report files."""
+    # Prevent path traversal by ensuring the resolved path stays within DISCOVERIES_DIR
+    safe_path = os.path.normpath(os.path.join(DISCOVERIES_DIR, filename))
+    if not safe_path.startswith(os.path.normpath(DISCOVERIES_DIR)):
+        return jsonify({"error": "Invalid path"}), 403
     return send_from_directory(DISCOVERIES_DIR, filename)
 
 
