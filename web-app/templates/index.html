@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Discovery Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-brand">
+                <div class="logo">🔍</div>
+                <div class="brand-text">
+                    <h1>Product Discovery Manager</h1>
+                    <span class="subtitle">Structured customer discovery powered by JTBD</span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <select id="session-select" class="session-select">
+                    <option value="">New Session</option>
+                </select>
+                <button id="export-btn" class="btn btn-secondary" title="Export as Markdown" disabled>📥 Export</button>
+                <button id="clear-btn" class="btn btn-ghost" title="Clear conversation">🗑️ Clear</button>
+            </div>
+        </header>
+
+        <!-- Main Layout -->
+        <div class="main-layout">
+            <!-- Left Sidebar: Phase Tracker -->
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <h3>Discovery Phases</h3>
+                    <span id="current-phase-badge" class="phase-badge">Phase 1</span>
+                </div>
+                <div class="phases-list">
+                    <div class="phase-item active" data-phase="1">
+                        <div class="phase-number">1</div>
+                        <div class="phase-info">
+                            <div class="phase-name">Problem Elicitation</div>
+                            <div class="phase-desc">Validate the problem statement</div>
+                        </div>
+                    </div>
+                    <div class="phase-item" data-phase="2">
+                        <div class="phase-number">2</div>
+                        <div class="phase-info">
+                            <div class="phase-name">JTBD Analysis</div>
+                            <div class="phase-desc">Identify core and related jobs</div>
+                        </div>
+                    </div>
+                    <div class="phase-item" data-phase="3">
+                        <div class="phase-number">3</div>
+                        <div class="phase-info">
+                            <div class="phase-name">Competitive Landscape</div>
+                            <div class="phase-desc">Map solutions and gaps</div>
+                        </div>
+                    </div>
+                    <div class="phase-item" data-phase="4">
+                        <div class="phase-number">4</div>
+                        <div class="phase-info">
+                            <div class="phase-name">Success Metrics</div>
+                            <div class="phase-desc">Define measurable outcomes</div>
+                        </div>
+                    </div>
+                    <div class="phase-item" data-phase="5">
+                        <div class="phase-number">5</div>
+                        <div class="phase-info">
+                            <div class="phase-name">User Journey Mapping</div>
+                            <div class="phase-desc">Visualize the experience</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="sidebar-footer">
+                    <div class="hint">
+                        <span class="hint-icon">💡</span>
+                        <span class="hint-text">Kimi triggers the <code>product-discovery-manager</code> skill automatically</span>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Center: Chat Area -->
+            <main class="chat-container">
+                <!-- Landing State -->
+                <div id="landing-state" class="landing-state">
+                    <div class="landing-content">
+                        <div class="landing-icon">🎯</div>
+                        <h2>What problem are you trying to solve?</h2>
+                        <p>Describe your customer problem or product idea. The Product Discovery Manager will guide you through a structured 5-phase discovery process.</p>
+                        <div class="landing-input-wrapper">
+                            <textarea 
+                                id="problem-input" 
+                                class="problem-input" 
+                                placeholder="e.g., Freelance designers struggle to find consistent, high-quality clients because existing platforms prioritize low-cost competition, which leads to unreliable income and burnout..."
+                                rows="5"
+                            ></textarea>
+                            <button id="start-btn" class="btn btn-primary btn-large">
+                                <span>Start Discovery</span>
+                                <span class="btn-arrow">→</span>
+                            </button>
+                        </div>
+                        <div class="landing-examples">
+                            <span class="examples-label">Try an example:</span>
+                            <button class="example-chip" data-example="Small business owners waste hours manually reconciling invoices across multiple tools because no single platform integrates billing, accounting, and payment tracking seamlessly.">Invoice reconciliation</button>
+                            <button class="example-chip" data-example="Remote teams struggle to maintain culture and connection because existing communication tools are async-only and don't support spontaneous, informal interactions.">Remote team culture</button>
+                            <button class="example-chip" data-example="Parents find it hard to discover age-appropriate educational activities for their children because content platforms are not curated by child development experts.">Educational activities</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Messages -->
+                <div id="chat-messages" class="chat-messages hidden">
+                    <div class="welcome-message">
+                        <div class="message-avatar">🤖</div>
+                        <div class="message-content">
+                            <div class="message-sender">Product Discovery Manager</div>
+                            <div class="message-text">
+                                <p>Hello! I'm your Product Discovery Manager. I'll guide you through a structured discovery process grounded in Cagan's product model principles and the Jobs-to-be-Done framework.</p>
+                                <p>Let's start by understanding your problem. Please describe the customer problem or need you're exploring, and I'll begin Phase 1: Problem Elicitation.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loading Indicator -->
+                <div id="loading-indicator" class="loading-indicator hidden">
+                    <div class="loading-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <div class="loading-text">Kimi is analyzing your problem...</div>
+                </div>
+
+                <!-- Input Area -->
+                <div id="chat-input-area" class="chat-input-area hidden">
+                    <div class="input-wrapper">
+                        <textarea 
+                            id="chat-input" 
+                            class="chat-input" 
+                            placeholder="Type your response..."
+                            rows="1"
+                        ></textarea>
+                        <button id="send-btn" class="btn btn-primary btn-send">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="input-hint">Press Enter to send, Shift+Enter for new line</div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast hidden">
+        <span id="toast-message"></span>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
