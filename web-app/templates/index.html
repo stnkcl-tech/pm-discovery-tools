@@ -24,8 +24,11 @@
                 <select id="session-select" class="session-select">
                     <option value="">New Session</option>
                 </select>
+                <button id="save-discovery-btn" class="btn btn-secondary" title="Save to discoveries folder" disabled>💾 Save</button>
+                <button id="generate-report-btn" class="btn btn-secondary" title="Generate HTML report" disabled>📄 Report</button>
                 <button id="export-btn" class="btn btn-secondary" title="Export as Markdown" disabled>📥 Export</button>
                 <button id="clear-btn" class="btn btn-ghost" title="Clear conversation">🗑️ Clear</button>
+                <button id="discoveries-btn" class="btn btn-ghost" title="Browse discoveries">📂</button>
             </div>
         </header>
 
@@ -154,6 +157,20 @@
                     <div class="input-hint">Press Enter to send, Shift+Enter for new line</div>
                 </div>
             </main>
+        </div>
+    </div>
+
+    <!-- Discoveries Modal -->
+    <div id="discoveries-modal" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📂 Discovery Reports</h2>
+                <button id="close-modal" class="btn btn-ghost">✕</button>
+            </div>
+            <div id="discoveries-list" class="discoveries-list">
+                <p class="empty-state">No discoveries yet. Start a discovery session and save it!</p>
+            </div>
         </div>
     </div>
 

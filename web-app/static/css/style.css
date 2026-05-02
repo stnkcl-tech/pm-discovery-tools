@@ -741,6 +741,127 @@ html, body {
     background: var(--color-text-dim);
 }
 
+/* ── Modal ──────────────────────────────────────────────────────────────── */
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+}
+
+.modal-content {
+    position: relative;
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow-lg);
+    animation: modalIn 0.2s ease;
+}
+
+@keyframes modalIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.modal-header h2 {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.discoveries-list {
+    padding: 16px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.discovery-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    margin-bottom: 10px;
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.discovery-item:hover {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: var(--color-primary);
+}
+
+.discovery-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.discovery-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.discovery-meta {
+    font-size: 12px;
+    color: var(--color-text-dim);
+}
+
+.discovery-actions {
+    display: flex;
+    gap: 8px;
+    margin-left: 12px;
+}
+
+.discovery-actions .btn {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+.empty-state {
+    text-align: center;
+    color: var(--color-text-dim);
+    font-size: 14px;
+    padding: 40px 20px;
+}
+
 /* ── Responsive ─────────────────────────────────────────────────────────── */
 
 @media (max-width: 768px) {

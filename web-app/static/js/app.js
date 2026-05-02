@@ -33,6 +33,12 @@ const sessionSelect = document.getElementById('session-select');
 const currentPhaseBadge = document.getElementById('current-phase-badge');
 const toast = document.getElementById('toast');
 const toastMessage = document.getElementById('toast-message');
+const saveDiscoveryBtn = document.getElementById('save-discovery-btn');
+const generateReportBtn = document.getElementById('generate-report-btn');
+const discoveriesBtn = document.getElementById('discoveries-btn');
+const discoveriesModal = document.getElementById('discoveries-modal');
+const closeModalBtn = document.getElementById('close-modal');
+const discoveriesList = document.getElementById('discoveries-list');
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -169,6 +175,8 @@ function showChatInterface() {
     chatMessages.classList.remove('hidden');
     chatInputArea.classList.remove('hidden');
     exportBtn.disabled = false;
+    saveDiscoveryBtn.disabled = false;
+    generateReportBtn.disabled = false;
 }
 
 function showLandingInterface() {
@@ -282,6 +290,140 @@ async function exportSession() {
     window.open(`/api/export/${currentSessionId}`, '_blank');
 }
 
+async function saveDiscovery() {
+    if (!currentSessionId) return;
+
+    // Try to extract problem name from first user message
+    const session = sessions.find(s => s.id === currentSessionId);
+    let problemName = 'untitled-discovery';
+    if (session) {
+        const firstUserMsg = session.messages?.find(m => m.role === 'user');
+        if (firstUserMsg) {
+            problemName = firstUserMsg.content.slice(0, 50).replace(/[^\w\s]/g, '');
+        }
+    }
+
+    try {
+        saveDiscoveryBtn.disabled = true;
+        saveDiscoveryBtn.textContent = '💾 Saving...';
+
+        const response = await fetch('/api/save-discovery', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_id: currentSessionId, problem_name: problemName }),
+        });
+
+        const data = await response.json();
+        if (data.error) {
+            showToast(`Error: ${data.error}`);
+        } else {
+            showToast(`Discovery saved: ${data.folder}`);
+        }
+    } catch (err) {
+        showToast(`Failed to save: ${err.message}`);
+    } finally {
+        saveDiscoveryBtn.disabled = false;
+        saveDiscoveryBtn.textContent = '💾 Save';
+    }
+}
+
+async function generateReport() {
+    if (!currentSessionId) return;
+
+    // First save the discovery
+    await saveDiscovery();
+
+    // Get the most recent discovery folder
+    try {
+        generateReportBtn.disabled = true;
+        generateReportBtn.textContent = '📄 Generating...';
+
+        const discoveries = await fetch('/api/discoveries').then(r => r.json());
+        if (!discoveries.length) {
+            showToast('No discoveries found to generate report');
+            return;
+        }
+
+        const latest = discoveries[0];
+        const response = await fetch(`/api/generate-report/${latest.name}`, {
+            method: 'POST',
+        });
+
+        const data = await response.json();
+        if (data.error) {
+            showToast(`Error: ${data.error}`);
+        } else {
+            showToast('Report generated! Opening...');
+            window.open(data.report_url, '_blank');
+        }
+    } catch (err) {
+        showToast(`Failed to generate report: ${err.message}`);
+    } finally {
+        generateReportBtn.disabled = false;
+        generateReportBtn.textContent = '📄 Report';
+    }
+}
+
+async function loadDiscoveries() {
+    try {
+        const response = await fetch('/api/discoveries');
+        const data = await response.json();
+
+        if (!data.length) {
+            discoveriesList.innerHTML = '<p class="empty-state">No discoveries yet. Start a discovery session and save it!</p>';
+            return;
+        }
+
+        discoveriesList.innerHTML = data.map(d => `
+            <div class="discovery-item" data-folder="${d.name}">
+                <div class="discovery-info">
+                    <div class="discovery-name">${d.problem_name}</div>
+                    <div class="discovery-meta">${d.formatted_date} · ${d.md_files} files ${d.has_report ? '· ✅ Report' : ''}</div>
+                </div>
+                <div class="discovery-actions">
+                    ${d.has_report ? `<a href="/discoveries/${d.name}/index.html" target="_blank" class="btn btn-primary">View</a>` : ''}
+                    <button class="btn btn-secondary btn-generate" data-folder="${d.name}">Generate</button>
+                </div>
+            </div>
+        `).join('');
+
+        // Add event listeners to generate buttons
+        discoveriesList.querySelectorAll('.btn-generate').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const folder = btn.dataset.folder;
+                btn.textContent = '...';
+                btn.disabled = true;
+                try {
+                    const res = await fetch(`/api/generate-report/${folder}`, { method: 'POST' });
+                    const result = await res.json();
+                    if (result.success) {
+                        showToast('Report generated!');
+                        loadDiscoveries();
+                        window.open(result.report_url, '_blank');
+                    } else {
+                        showToast(`Error: ${result.error}`);
+                    }
+                } catch (err) {
+                    showToast(`Failed: ${err.message}`);
+                }
+            });
+        });
+    } catch (err) {
+        console.error('Failed to load discoveries:', err);
+        discoveriesList.innerHTML = '<p class="empty-state">Failed to load discoveries</p>';
+    }
+}
+
+function openDiscoveriesModal() {
+    discoveriesModal.classList.remove('hidden');
+    loadDiscoveries();
+}
+
+function closeDiscoveriesModal() {
+    discoveriesModal.classList.add('hidden');
+}
+
 async function deleteSession(sessionId) {
     if (!sessionId) return;
     try {
@@ -337,6 +479,16 @@ problemInput.addEventListener('keydown', (e) => {
 });
 
 exportBtn.addEventListener('click', exportSession);
+
+saveDiscoveryBtn.addEventListener('click', saveDiscovery);
+
+generateReportBtn.addEventListener('click', generateReport);
+
+discoveriesBtn.addEventListener('click', openDiscoveriesModal);
+
+closeModalBtn.addEventListener('click', closeDiscoveriesModal);
+
+discoveriesModal.querySelector('.modal-overlay').addEventListener('click', closeDiscoveriesModal);
 
 clearBtn.addEventListener('click', () => {
     if (currentSessionId && confirm('Delete this session?')) {

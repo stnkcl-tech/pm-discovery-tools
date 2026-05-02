@@ -154,6 +154,30 @@ At the end of discovery, produce this structured summary:
 | ...   | ...         | ...        | ...        | ...     | ...         |
 ```
 
+## Output Storage & Reporting
+
+After completing all 5 phases, the discovery results must be saved to the project's `discoveries/` folder in this structure:
+
+```
+discoveries/
+└── yyyymmdd-{kebab-case-problem-name}/
+    ├── 01-problem-statement.md
+    ├── 02-jobs-to-be-done.md
+    ├── 03-competitive-landscape.md
+    ├── 04-success-metrics.md
+    ├── 05-user-journey-map.md
+    ├── summary.md
+    └── index.html   (generated HTML report)
+```
+
+The HTML report is auto-generated with:
+- **Typography**: Playfair Display (headings) + Merriweather (body) — free Google Fonts
+- **Reading time**: Estimated at 200 WPM, displayed in a Medium-style badge
+- **Design**: Warm off-white background, generous whitespace, sticky phase navigation
+- **Highlights**: JTBD in elegant blockquotes, metrics in clean tables, key findings emphasized
+
+When using the web interface, click **"Save"** after each phase to persist outputs, then **"Report"** to generate the final HTML. When using CLI mode, ask the user if they want to save the discovery to a dated folder.
+
 ## Execution Principles
 
 - **Confirm, don't assume** — Present drafts of problem statements, JTBD, and journey maps for validation before finalizing.

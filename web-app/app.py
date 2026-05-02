@@ -14,8 +14,18 @@ import subprocess
 from datetime import datetime
 from threading import Lock
 
-from flask import Flask, render_template, request, jsonify, Response
+from flask import Flask, render_template, request, jsonify, Response, send_from_directory
 from flask_cors import CORS
+
+# Import report generator
+from report_generator import (
+    create_discovery_folder,
+    save_discovery_phase,
+    save_discovery_summary,
+    generate_report,
+    list_discovery_folders,
+    DISCOVERIES_DIR,
+)
 
 # ── Configuration ──────────────────────────────────────────────────────────
 
@@ -241,6 +251,92 @@ def delete_session(session_id):
             del sessions[session_id]
             return jsonify({"success": True})
     return jsonify({"error": "Session not found"}), 404
+
+
+# ── Discovery Save & Report Routes ─────────────────────────────────────────
+
+@app.route("/api/save-discovery", methods=["POST"])
+def save_discovery():
+    """Save the current session as structured discovery files."""
+    data = request.get_json(force=True) or {}
+    session_id = data.get("session_id")
+    problem_name = (data.get("problem_name") or "untitled-discovery").strip()
+
+    if not session_id:
+        return jsonify({"error": "session_id is required"}), 400
+
+    with sessions_lock:
+        session = sessions.get(session_id)
+    if not session:
+        return jsonify({"error": "Session not found"}), 404
+
+    try:
+        # Create discovery folder
+        folder_path = create_discovery_folder(problem_name)
+        folder_name = os.path.basename(folder_path)
+
+        # Extract phase content from messages and save as separate files
+        phase_content = {p["id"]: [] for p in PHASES}
+        current_summary_lines = ["# Product Discovery Summary\n"]
+
+        for msg in session["messages"]:
+            phase = msg.get("phase", 1)
+            if msg["role"] == "assistant":
+                phase_content[phase].append(msg["content"])
+
+        # Save each phase
+        for phase in PHASES:
+            pid = phase["id"]
+            if phase_content[pid]:
+                content = f"# {phase['name']}\n\n" + "\n\n".join(phase_content[pid])
+                save_discovery_phase(folder_path, pid, phase["name"], content)
+                current_summary_lines.append(f"\n## {phase['name']}\n")
+                current_summary_lines.append("\n\n".join(phase_content[pid]))
+
+        # Save summary
+        summary_content = "\n".join(current_summary_lines)
+        save_discovery_summary(folder_path, summary_content)
+
+        return jsonify({
+            "success": True,
+            "folder": folder_name,
+            "folder_path": folder_path,
+            "message": f"Discovery saved to discoveries/{folder_name}/",
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/generate-report/<folder>", methods=["POST"])
+def generate_discovery_report(folder):
+    """Generate an HTML report for a discovery folder."""
+    folder_path = os.path.join(DISCOVERIES_DIR, folder)
+    if not os.path.exists(folder_path):
+        return jsonify({"error": f"Folder not found: {folder}"}), 404
+
+    try:
+        report_path = generate_report(folder_path)
+        return jsonify({
+            "success": True,
+            "report_path": report_path,
+            "report_url": f"/discoveries/{folder}/index.html",
+            "message": "Report generated successfully",
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/discoveries", methods=["GET"])
+def get_discoveries():
+    """List all discovery folders."""
+    return jsonify(list_discovery_folders())
+
+
+@app.route("/discoveries/<path:filename>")
+def serve_discovery(filename):
+    """Serve discovery report files."""
+    return send_from_directory(DISCOVERIES_DIR, filename)
 
 
 # ── Main ───────────────────────────────────────────────────────────────────
