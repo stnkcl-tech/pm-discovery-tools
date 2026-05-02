@@ -16,7 +16,7 @@ from datetime import datetime
 
 WORDS_PER_MINUTE = 200
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DISCOVERIES_DIR = os.path.join(PROJECT_ROOT, "discoveries")
+DISCOVERIES_DIR = os.path.join(PROJECT_ROOT, "Discovery", "discoveries")
 
 # ── Markdown to HTML Converter ─────────────────────────────────────────────
 

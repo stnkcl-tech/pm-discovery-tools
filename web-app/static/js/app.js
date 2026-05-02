@@ -381,7 +381,7 @@ async function loadDiscoveries() {
                     <div class="discovery-meta">${d.formatted_date} · ${d.md_files} files ${d.has_report ? '· ✅ Report' : ''}</div>
                 </div>
                 <div class="discovery-actions">
-                    ${d.has_report ? `<a href="/discoveries/${d.name}/index.html" target="_blank" class="btn btn-primary">View</a>` : ''}
+                    ${d.has_report ? `<a href="/Discovery/discoveries/${d.name}/index.html" target="_blank" class="btn btn-primary">View</a>` : ''}
                     <button class="btn btn-secondary btn-generate" data-folder="${d.name}">Generate</button>
                 </div>
             </div>

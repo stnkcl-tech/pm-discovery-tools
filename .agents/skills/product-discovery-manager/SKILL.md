@@ -156,11 +156,12 @@ At the end of discovery, produce this structured summary:
 
 ## Output Storage & Reporting
 
-After completing all 5 phases, the discovery results must be saved to the project's `discoveries/` folder in this structure:
+After completing all 5 phases, the discovery results must be saved to the project's `Discovery/discoveries/` folder in this structure:
 
 ```
-discoveries/
-└── yyyymmdd-{kebab-case-problem-name}/
+Discovery/
+└── discoveries/
+    └── yyyymmdd-{kebab-case-problem-name}/
     ├── 01-problem-statement.md
     ├── 02-jobs-to-be-done.md
     ├── 03-competitive-landscape.md

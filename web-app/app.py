@@ -301,7 +301,7 @@ def save_discovery():
             "success": True,
             "folder": folder_name,
             "folder_path": folder_path,
-            "message": f"Discovery saved to discoveries/{folder_name}/",
+            "message": f"Discovery saved to Discovery/discoveries/{folder_name}/",
         })
 
     except Exception as e:
@@ -320,7 +320,7 @@ def generate_discovery_report(folder):
         return jsonify({
             "success": True,
             "report_path": report_path,
-            "report_url": f"/discoveries/{folder}/index.html",
+            "report_url": f"/Discovery/discoveries/{folder}/index.html",
             "message": "Report generated successfully",
         })
     except Exception as e:
@@ -333,7 +333,7 @@ def get_discoveries():
     return jsonify(list_discovery_folders())
 
 
-@app.route("/discoveries/<path:filename>")
+@app.route("/Discovery/discoveries/<path:filename>")
 def serve_discovery(filename):
     """Serve discovery report files."""
     return send_from_directory(DISCOVERIES_DIR, filename)
