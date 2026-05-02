@@ -1,6 +1,6 @@
 /**
- * Product Discovery Manager - Frontend
- * Handles chat UI, session management, and API communication with Flask backend.
+ * Product Discovery Manager + Solution Architect - Frontend
+ * Handles chat UI, session management, skill switching, and API communication.
  */
 
 // ── State ──────────────────────────────────────────────────────────────────
@@ -8,14 +8,69 @@
 let currentSessionId = null;
 let isLoading = false;
 let sessions = [];
+let currentSkill = "discovery"; // "discovery" | "solution"
 
-const PHASES = [
-    { id: 1, name: "Problem Elicitation" },
-    { id: 2, name: "JTBD Analysis" },
-    { id: 3, name: "Competitive Landscape" },
-    { id: 4, name: "Success Metrics" },
-    { id: 5, name: "User Journey Mapping" },
+const PHASES_DISCOVERY = [
+    { id: 1, name: "Problem Elicitation", desc: "Validate the problem statement" },
+    { id: 2, name: "JTBD Analysis", desc: "Identify core and related jobs" },
+    { id: 3, name: "Competitive Landscape", desc: "Map solutions and gaps" },
+    { id: 4, name: "Success Metrics", desc: "Define measurable outcomes" },
+    { id: 5, name: "User Journey Mapping", desc: "Visualize the experience" },
 ];
+
+const PHASES_SOLUTION = [
+    { id: 1, name: "Discovery Input", desc: "Retrieve and synthesize discovery findings" },
+    { id: 2, name: "Barrier Analysis", desc: "Identify what prevents job completion" },
+    { id: 3, name: "Opportunity Exploration", desc: "Explore low-tech solutions first" },
+    { id: 4, name: "Opportunity Solution Tree", desc: "Visualize barriers and opportunities" },
+    { id: 5, name: "T-Shirt Sizing", desc: "Estimate relative effort" },
+    { id: 6, name: "RICE Prioritization", desc: "Score by Reach, Impact, Confidence, Effort" },
+    { id: 7, name: "Solution Recommendation", desc: "Recommend next easiest high-impact step" },
+    { id: 8, name: "Validation Plan", desc: "Define how to test with real users" },
+];
+
+const SKILL_CONFIG = {
+    discovery: {
+        phases: PHASES_DISCOVERY,
+        logo: "🔍",
+        title: "Product Discovery Manager",
+        subtitle: "Structured customer discovery powered by JTBD",
+        sidebarTitle: "Discovery Phases",
+        landingIcon: "🎯",
+        landingHeading: "What problem are you trying to solve?",
+        landingDesc: "Describe your customer problem or product idea. The Product Discovery Manager will guide you through a structured discovery process.",
+        startBtnText: "Start Discovery",
+        senderName: "Product Discovery Manager",
+        welcomeMsg: `<p>Hello! I'm your Product Discovery Manager. I'll guide you through a structured discovery process grounded in Cagan's product model principles and the Jobs-to-be-Done framework.</p><p>Let's start by understanding your problem. Please describe the customer problem or need you're exploring, and I'll begin Phase 1: Problem Elicitation.</p>`,
+        saveEndpoint: "/api/save-discovery",
+        listEndpoint: "/api/discoveries",
+        reportEndpointPrefix: "/api/generate-report",
+        reportUrlPrefix: "/Discovery/discoveries",
+        browseTitle: "📂 Discovery Reports",
+        emptyMsg: "No discoveries yet. Start a discovery session and save it!",
+        hint: "Kimi triggers the product-discovery-manager skill automatically",
+    },
+    solution: {
+        phases: PHASES_SOLUTION,
+        logo: "🛠️",
+        title: "Solution Architect",
+        subtitle: "Low-friction solutions for non-tech-savvy users",
+        sidebarTitle: "Solution Phases",
+        landingIcon: "💡",
+        landingHeading: "What discovery output are we solutioning for?",
+        landingDesc: "Paste your discovery summary or describe the problem space. The Solution Architect will find the quickest, lowest-friction path to validate a solution — starting from free tools and no-code before proposing custom builds.",
+        startBtnText: "Start Solutioning",
+        senderName: "Solution Architect",
+        welcomeMsg: `<p>Hello! I'm your Solution Architect. I'll help you find the quickest, easiest way to solve the problems identified in your discovery — starting from process fixes and free tools, through no/low-code platforms, before ever proposing a custom build.</p><p>Share your discovery summary or describe the problem, and I'll begin Phase 1: Discovery Input.</p>`,
+        saveEndpoint: "/api/save-solution",
+        listEndpoint: "/api/solutions",
+        reportEndpointPrefix: "/api/generate-solution-report",
+        reportUrlPrefix: "/Solutions/solutions",
+        browseTitle: "📂 Solution Reports",
+        emptyMsg: "No solutions yet. Start a solution session and save it!",
+        hint: "Kimi triggers the solution-architect skill automatically based on your messages",
+    },
+};
 
 // ── DOM Elements ───────────────────────────────────────────────────────────
 
@@ -30,15 +85,31 @@ const sendBtn = document.getElementById('send-btn');
 const exportBtn = document.getElementById('export-btn');
 const clearBtn = document.getElementById('clear-btn');
 const sessionSelect = document.getElementById('session-select');
+const skillSelect = document.getElementById('skill-select');
 const currentPhaseBadge = document.getElementById('current-phase-badge');
 const toast = document.getElementById('toast');
 const toastMessage = document.getElementById('toast-message');
-const saveDiscoveryBtn = document.getElementById('save-discovery-btn');
+const saveBtn = document.getElementById('save-btn');
 const generateReportBtn = document.getElementById('generate-report-btn');
-const discoveriesBtn = document.getElementById('discoveries-btn');
-const discoveriesModal = document.getElementById('discoveries-modal');
+const browseBtn = document.getElementById('browse-btn');
+const browseModal = document.getElementById('browse-modal');
 const closeModalBtn = document.getElementById('close-modal');
-const discoveriesList = document.getElementById('discoveries-list');
+const browseList = document.getElementById('browse-list');
+
+// Dynamic UI elements
+const headerLogo = document.getElementById('header-logo');
+const headerTitle = document.getElementById('header-title');
+const headerSubtitle = document.getElementById('header-subtitle');
+const sidebarTitle = document.getElementById('sidebar-title');
+const phasesList = document.getElementById('phases-list');
+const sidebarHint = document.getElementById('sidebar-hint');
+const landingIcon = document.getElementById('landing-icon');
+const landingHeading = document.getElementById('landing-heading');
+const landingDesc = document.getElementById('landing-desc');
+const startBtnText = document.getElementById('start-btn-text');
+const welcomeSender = document.getElementById('welcome-sender');
+const welcomeText = document.getElementById('welcome-text');
+const browseModalTitle = document.getElementById('browse-modal-title');
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -134,6 +205,10 @@ function markdownToHtml(markdown) {
     return html;
 }
 
+function getCurrentPhases() {
+    return SKILL_CONFIG[currentSkill].phases;
+}
+
 function updatePhaseTracker(phaseId) {
     currentPhaseBadge.textContent = `Phase ${phaseId}`;
 
@@ -149,13 +224,61 @@ function updatePhaseTracker(phaseId) {
     });
 }
 
+function renderPhases() {
+    const phases = getCurrentPhases();
+    phasesList.innerHTML = phases.map((phase, index) => `
+        <div class="phase-item ${index === 0 ? 'active' : ''}" data-phase="${phase.id}">
+            <div class="phase-number">${phase.id}</div>
+            <div class="phase-info">
+                <div class="phase-name">${phase.name}</div>
+                <div class="phase-desc">${phase.desc}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function applySkillUI() {
+    const cfg = SKILL_CONFIG[currentSkill];
+
+    // Header
+    headerLogo.textContent = cfg.logo;
+    headerTitle.textContent = cfg.title;
+    headerSubtitle.textContent = cfg.subtitle;
+
+    // Sidebar
+    sidebarTitle.textContent = cfg.sidebarTitle;
+    sidebarHint.innerHTML = `Kimi triggers the <code>${currentSkill === 'discovery' ? 'product-discovery-manager' : 'solution-architect'}</code> skill automatically`;
+    renderPhases();
+
+    // Landing
+    landingIcon.textContent = cfg.landingIcon;
+    landingHeading.textContent = cfg.landingHeading;
+    landingDesc.textContent = cfg.landingDesc;
+    startBtnText.textContent = cfg.startBtnText;
+
+    // Welcome message
+    welcomeSender.textContent = cfg.senderName;
+    welcomeText.innerHTML = cfg.welcomeMsg;
+
+    // Browse modal
+    browseModalTitle.textContent = cfg.browseTitle;
+}
+
+function switchSkill(skill) {
+    currentSkill = skill;
+    skillSelect.value = skill;
+    applySkillUI();
+    showLandingInterface();
+    loadSessions();
+}
+
 function addMessage(role, content, phase = 1) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}`;
     messageDiv.dataset.phase = phase;
 
     const avatar = role === 'user' ? '🧑' : '🤖';
-    const sender = role === 'user' ? 'You' : 'Product Discovery Manager';
+    const sender = role === 'user' ? 'You' : SKILL_CONFIG[currentSkill].senderName;
     const htmlContent = markdownToHtml(content);
 
     messageDiv.innerHTML = `
@@ -175,7 +298,7 @@ function showChatInterface() {
     chatMessages.classList.remove('hidden');
     chatInputArea.classList.remove('hidden');
     exportBtn.disabled = false;
-    saveDiscoveryBtn.disabled = false;
+    saveBtn.disabled = false;
     generateReportBtn.disabled = false;
 }
 
@@ -188,6 +311,17 @@ function showLandingInterface() {
     chatInput.value = '';
     currentSessionId = null;
     updatePhaseTracker(1);
+
+    // Reset chat messages to welcome only
+    chatMessages.innerHTML = `
+        <div class="welcome-message">
+            <div class="message-avatar">🤖</div>
+            <div class="message-content">
+                <div class="message-sender">${SKILL_CONFIG[currentSkill].senderName}</div>
+                <div class="message-text">${SKILL_CONFIG[currentSkill].welcomeMsg}</div>
+            </div>
+        </div>
+    `;
 }
 
 // ── API Communication ──────────────────────────────────────────────────────
@@ -204,7 +338,7 @@ async function sendMessage(message) {
         const response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message, session_id: currentSessionId }),
+            body: JSON.stringify({ message, session_id: currentSessionId, skill: currentSkill }),
         });
 
         const data = await response.json();
@@ -236,6 +370,8 @@ async function loadSessions() {
         sessionSelect.innerHTML = '<option value="">New Session</option>';
 
         data.forEach(session => {
+            // Only show sessions for current skill
+            if (session.skill !== currentSkill) return;
             const option = document.createElement('option');
             option.value = session.id;
             const date = new Date(session.created_at).toLocaleString();
@@ -260,14 +396,19 @@ async function loadSession(sessionId) {
             return;
         }
 
+        // If session skill differs from current, switch
+        if (session.skill && session.skill !== currentSkill) {
+            switchSkill(session.skill);
+        }
+
         // Clear and rebuild chat
         chatMessages.innerHTML = `
             <div class="welcome-message">
                 <div class="message-avatar">🤖</div>
                 <div class="message-content">
-                    <div class="message-sender">Product Discovery Manager</div>
+                    <div class="message-sender">${SKILL_CONFIG[currentSkill].senderName}</div>
                     <div class="message-text">
-                        <p>Resuming session <strong>${session.id}</strong>. Current phase: <strong>${PHASES.find(p => p.id === session.current_phase)?.name || 'Unknown'}</strong>.</p>
+                        <p>Resuming session <strong>${session.id}</strong>. Current phase: <strong>${getCurrentPhases().find(p => p.id === session.current_phase)?.name || 'Unknown'}</strong>.</p>
                     </div>
                 </div>
             </div>
@@ -290,12 +431,12 @@ async function exportSession() {
     window.open(`/api/export/${currentSessionId}`, '_blank');
 }
 
-async function saveDiscovery() {
+async function saveOutput() {
     if (!currentSessionId) return;
 
-    // Try to extract problem name from first user message
+    const cfg = SKILL_CONFIG[currentSkill];
     const session = sessions.find(s => s.id === currentSessionId);
-    let problemName = 'untitled-discovery';
+    let problemName = currentSkill === 'discovery' ? 'untitled-discovery' : 'untitled-solution';
     if (session) {
         const firstUserMsg = session.messages?.find(m => m.role === 'user');
         if (firstUserMsg) {
@@ -304,10 +445,10 @@ async function saveDiscovery() {
     }
 
     try {
-        saveDiscoveryBtn.disabled = true;
-        saveDiscoveryBtn.textContent = '💾 Saving...';
+        saveBtn.disabled = true;
+        saveBtn.textContent = '💾 Saving...';
 
-        const response = await fetch('/api/save-discovery', {
+        const response = await fetch(cfg.saveEndpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ session_id: currentSessionId, problem_name: problemName }),
@@ -317,35 +458,37 @@ async function saveDiscovery() {
         if (data.error) {
             showToast(`Error: ${data.error}`);
         } else {
-            showToast(`Discovery saved: ${data.folder}`);
+            showToast(`${currentSkill === 'discovery' ? 'Discovery' : 'Solution'} saved: ${data.folder}`);
         }
     } catch (err) {
         showToast(`Failed to save: ${err.message}`);
     } finally {
-        saveDiscoveryBtn.disabled = false;
-        saveDiscoveryBtn.textContent = '💾 Save';
+        saveBtn.disabled = false;
+        saveBtn.textContent = '💾 Save';
     }
 }
 
 async function generateReport() {
     if (!currentSessionId) return;
 
-    // First save the discovery
-    await saveDiscovery();
+    const cfg = SKILL_CONFIG[currentSkill];
 
-    // Get the most recent discovery folder
+    // First save
+    await saveOutput();
+
+    // Get the most recent folder
     try {
         generateReportBtn.disabled = true;
         generateReportBtn.textContent = '📄 Generating...';
 
-        const discoveries = await fetch('/api/discoveries').then(r => r.json());
-        if (!discoveries.length) {
-            showToast('No discoveries found to generate report');
+        const outputs = await fetch(cfg.listEndpoint).then(r => r.json());
+        if (!outputs.length) {
+            showToast('No saved outputs found to generate report');
             return;
         }
 
-        const latest = discoveries[0];
-        const response = await fetch(`/api/generate-report/${latest.name}`, {
+        const latest = outputs[0];
+        const response = await fetch(`${cfg.reportEndpointPrefix}/${latest.name}`, {
             method: 'POST',
         });
 
@@ -364,42 +507,43 @@ async function generateReport() {
     }
 }
 
-async function loadDiscoveries() {
+async function loadOutputs() {
+    const cfg = SKILL_CONFIG[currentSkill];
     try {
-        const response = await fetch('/api/discoveries');
+        const response = await fetch(cfg.listEndpoint);
         const data = await response.json();
 
         if (!data.length) {
-            discoveriesList.innerHTML = '<p class="empty-state">No discoveries yet. Start a discovery session and save it!</p>';
+            browseList.innerHTML = `<p class="empty-state">${cfg.emptyMsg}</p>`;
             return;
         }
 
-        discoveriesList.innerHTML = data.map(d => `
+        browseList.innerHTML = data.map(d => `
             <div class="discovery-item" data-folder="${d.name}">
                 <div class="discovery-info">
                     <div class="discovery-name">${d.problem_name}</div>
                     <div class="discovery-meta">${d.formatted_date} · ${d.md_files} files ${d.has_report ? '· ✅ Report' : ''}</div>
                 </div>
                 <div class="discovery-actions">
-                    ${d.has_report ? `<a href="/Discovery/discoveries/${d.name}/index.html" target="_blank" class="btn btn-primary">View</a>` : ''}
+                    ${d.has_report ? `<a href="${cfg.reportUrlPrefix}/${d.name}/index.html" target="_blank" class="btn btn-primary">View</a>` : ''}
                     <button class="btn btn-secondary btn-generate" data-folder="${d.name}">Generate</button>
                 </div>
             </div>
         `).join('');
 
         // Add event listeners to generate buttons
-        discoveriesList.querySelectorAll('.btn-generate').forEach(btn => {
+        browseList.querySelectorAll('.btn-generate').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 const folder = btn.dataset.folder;
                 btn.textContent = '...';
                 btn.disabled = true;
                 try {
-                    const res = await fetch(`/api/generate-report/${folder}`, { method: 'POST' });
+                    const res = await fetch(`${cfg.reportEndpointPrefix}/${folder}`, { method: 'POST' });
                     const result = await res.json();
                     if (result.success) {
                         showToast('Report generated!');
-                        loadDiscoveries();
+                        loadOutputs();
                         window.open(result.report_url, '_blank');
                     } else {
                         showToast(`Error: ${result.error}`);
@@ -410,18 +554,18 @@ async function loadDiscoveries() {
             });
         });
     } catch (err) {
-        console.error('Failed to load discoveries:', err);
-        discoveriesList.innerHTML = '<p class="empty-state">Failed to load discoveries</p>';
+        console.error('Failed to load outputs:', err);
+        browseList.innerHTML = '<p class="empty-state">Failed to load saved outputs</p>';
     }
 }
 
-function openDiscoveriesModal() {
-    discoveriesModal.classList.remove('hidden');
-    loadDiscoveries();
+function openBrowseModal() {
+    browseModal.classList.remove('hidden');
+    loadOutputs();
 }
 
-function closeDiscoveriesModal() {
-    discoveriesModal.classList.add('hidden');
+function closeBrowseModal() {
+    browseModal.classList.add('hidden');
 }
 
 async function deleteSession(sessionId) {
@@ -480,15 +624,15 @@ problemInput.addEventListener('keydown', (e) => {
 
 exportBtn.addEventListener('click', exportSession);
 
-saveDiscoveryBtn.addEventListener('click', saveDiscovery);
+saveBtn.addEventListener('click', saveOutput);
 
 generateReportBtn.addEventListener('click', generateReport);
 
-discoveriesBtn.addEventListener('click', openDiscoveriesModal);
+browseBtn.addEventListener('click', openBrowseModal);
 
-closeModalBtn.addEventListener('click', closeDiscoveriesModal);
+closeModalBtn.addEventListener('click', closeBrowseModal);
 
-discoveriesModal.querySelector('.modal-overlay').addEventListener('click', closeDiscoveriesModal);
+browseModal.querySelector('.modal-overlay').addEventListener('click', closeBrowseModal);
 
 clearBtn.addEventListener('click', () => {
     if (currentSessionId && confirm('Delete this session?')) {
@@ -507,6 +651,10 @@ sessionSelect.addEventListener('change', () => {
     }
 });
 
+skillSelect.addEventListener('change', () => {
+    switchSkill(skillSelect.value);
+});
+
 // Example chips
 document.querySelectorAll('.example-chip').forEach(chip => {
     chip.addEventListener('click', () => {
@@ -518,9 +666,10 @@ document.querySelectorAll('.example-chip').forEach(chip => {
 // ── Init ───────────────────────────────────────────────────────────────────
 
 async function init() {
+    applySkillUI();
     await loadSessions();
     problemInput.focus();
-    console.log('Product Discovery Manager loaded');
+    console.log('Product Discovery Manager + Solution Architect loaded');
 }
 
 init();

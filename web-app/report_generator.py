@@ -3,12 +3,13 @@
 Discovery Report Generator
 Generates a beautiful, typography-focused HTML report from discovery markdown files.
 Design inspired by Medium.com and mellow.dev — minimal, readable, captivating.
-All fonts are free/open-source (Google Fonts: Playfair Display, Inter, Merriweather).
+Sans-serif font (Inter), gentle dark mode, related jobs table with importance badges.
 """
 
 import os
 import re
 import glob
+import getpass
 from datetime import datetime
 
 
@@ -17,6 +18,56 @@ from datetime import datetime
 WORDS_PER_MINUTE = 200
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DISCOVERIES_DIR = os.path.join(PROJECT_ROOT, "Discovery", "discoveries")
+SOLUTIONS_DIR = os.path.join(PROJECT_ROOT, "Solutions", "solutions")
+
+GITHUB_LINK = "https://github.com/stnkcl/ai-pm-tools"  # Update to actual repo URL
+
+
+# ── Importance / Satisfaction Badge Helpers ────────────────────────────────
+
+def _importance_badge(value: str) -> str:
+    """Wrap an importance value in a colored badge span."""
+    val_lower = value.lower()
+    if "critical" in val_lower:
+        cls = "importance-critical"
+    elif "important" in val_lower or "high" in val_lower:
+        cls = "importance-important"
+    elif "moderate" in val_lower or "medium" in val_lower:
+        cls = "importance-moderate"
+    elif "low" in val_lower or "nice" in val_lower or "optional" in val_lower:
+        cls = "importance-low"
+    else:
+        cls = "importance-default"
+    return f'<span class="importance-badge {cls}">{value}</span>'
+
+
+def _satisfaction_badge(value: str) -> str:
+    """Wrap a satisfaction value in a subtle badge span."""
+    val_lower = value.lower()
+    # Try to extract numeric rating
+    match = re.search(r'(\d+(?:\.\d+)?)\s*/\s*\d+', value)
+    if match:
+        num = float(match.group(1))
+        if num <= 2:
+            cls = "sat-poor"
+        elif num <= 3:
+            cls = "sat-okay"
+        elif num <= 4:
+            cls = "sat-good"
+        else:
+            cls = "sat-excellent"
+    elif any(w in val_lower for w in ["low", "poor", "bad", "terrible", "frustrated"]):
+        cls = "sat-poor"
+    elif any(w in val_lower for w in ["okay", "fine", "neutral", "mixed"]):
+        cls = "sat-okay"
+    elif any(w in val_lower for w in ["good", "happy", "satisfied", "great"]):
+        cls = "sat-good"
+    elif any(w in val_lower for w in ["excellent", "love", "amazing", "delighted"]):
+        cls = "sat-excellent"
+    else:
+        cls = "sat-default"
+    return f'<span class="satisfaction-badge {cls}">{value}</span>'
+
 
 # ── Markdown to HTML Converter ─────────────────────────────────────────────
 
@@ -137,7 +188,34 @@ class MarkdownConverter:
         if self.in_table and self.table_buffer:
             html_blocks.append(self._render_table(self.table_buffer))
 
-        return '\n'.join(html_blocks)
+        result = '\n'.join(html_blocks)
+        # Post-process: wrap importance and satisfaction values in badges
+        result = self._post_process_badges(result)
+        return result
+
+    def _post_process_badges(self, html: str) -> str:
+        """Wrap importance and satisfaction values in styled badges."""
+        def replace_importance(match):
+            prefix = match.group(1)
+            value = match.group(2).strip()
+            return f'{prefix}{_importance_badge(value)}'
+
+        def replace_satisfaction(match):
+            prefix = match.group(1)
+            value = match.group(2).strip()
+            return f'{prefix}{_satisfaction_badge(value)}'
+
+        # Importance: various formats
+        html = re.sub(
+            r'(<strong>Importance\s*:?\s*</strong>\s*:?\s*)([^<\n]+)',
+            replace_importance, html, flags=re.IGNORECASE
+        )
+        # Satisfaction: various formats
+        html = re.sub(
+            r'(<strong>Satisfaction\s*:?\s*</strong>\s*:?\s*)([^<\n]+)',
+            replace_satisfaction, html, flags=re.IGNORECASE
+        )
+        return html
 
     def _flush_lists(self, html_blocks):
         if self.in_list and self.list_buffer:
@@ -217,6 +295,15 @@ def create_discovery_folder(problem_name: str) -> str:
     return folder_path
 
 
+def create_solution_folder(problem_name: str) -> str:
+    date_prefix = datetime.now().strftime('%Y%m%d')
+    sanitized = sanitize_name(problem_name)
+    folder_name = f"{date_prefix}-{sanitized}"
+    folder_path = os.path.join(SOLUTIONS_DIR, folder_name)
+    os.makedirs(folder_path, exist_ok=True)
+    return folder_path
+
+
 def list_discovery_folders() -> list:
     if not os.path.exists(DISCOVERIES_DIR):
         return []
@@ -224,6 +311,33 @@ def list_discovery_folders() -> list:
     folders = []
     for name in sorted(os.listdir(DISCOVERIES_DIR), reverse=True):
         path = os.path.join(DISCOVERIES_DIR, name)
+        if os.path.isdir(path):
+            md_files = glob.glob(os.path.join(path, '*.md'))
+            has_report = os.path.exists(os.path.join(path, 'index.html'))
+            match = re.match(r'^(\d{8})-(.+)$', name)
+            date_str = match.group(1) if match else ''
+            problem_name = match.group(2).replace('-', ' ').title() if match else name
+
+            folders.append({
+                'name': name,
+                'path': path,
+                'problem_name': problem_name,
+                'date': date_str,
+                'formatted_date': datetime.strptime(date_str, '%Y%m%d').strftime('%b %d, %Y') if date_str else '',
+                'md_files': len(md_files),
+                'has_report': has_report
+            })
+
+    return folders
+
+
+def list_solution_folders() -> list:
+    if not os.path.exists(SOLUTIONS_DIR):
+        return []
+
+    folders = []
+    for name in sorted(os.listdir(SOLUTIONS_DIR), reverse=True):
+        path = os.path.join(SOLUTIONS_DIR, name)
         if os.path.isdir(path):
             md_files = glob.glob(os.path.join(path, '*.md'))
             has_report = os.path.exists(os.path.join(path, 'index.html'))
@@ -254,11 +368,186 @@ def save_discovery_phase(folder_path: str, phase_number: int, phase_name: str, c
     return filepath
 
 
+def save_solution_phase(folder_path: str, phase_number: int, phase_name: str, content: str) -> str:
+    filename = f"{phase_number:02d}-{phase_name.lower().replace(' ', '-').replace('/', '-')}.md"
+    filepath = os.path.join(folder_path, filename)
+    with open(filepath, 'w', encoding='utf-8') as f:
+        f.write(content)
+    return filepath
+
+
 def save_discovery_summary(folder_path: str, content: str) -> str:
     filepath = os.path.join(folder_path, 'summary.md')
     with open(filepath, 'w', encoding='utf-8') as f:
         f.write(content)
     return filepath
+
+
+def save_solution_summary(folder_path: str, content: str) -> str:
+    filepath = os.path.join(folder_path, 'summary.md')
+    with open(filepath, 'w', encoding='utf-8') as f:
+        f.write(content)
+    return filepath
+
+
+# ── Duplicate Heading Detection ────────────────────────────────────────────
+
+def _headings_match(section_title: str, html_content: str) -> bool:
+    """Check if the first heading in html_content matches the section_title."""
+    title_norm = re.sub(r'[^\w]', '', section_title.lower())
+
+    # Find first h1 or h2
+    match = re.search(r'<h[12][^>]*>(.*?)</h[12]>', html_content, re.IGNORECASE | re.DOTALL)
+    if not match:
+        return False
+
+    heading_text = re.sub(r'<[^>]+>', '', match.group(1))
+    heading_norm = re.sub(r'[^\w]', '', heading_text.lower())
+
+    return title_norm == heading_norm or title_norm in heading_norm or heading_norm in title_norm
+
+
+# ── Related Jobs Table Builder ─────────────────────────────────────────────
+
+# Regex patterns for parsing related jobs markdown
+_RE_JOB = re.compile(r'^-\s*\*\*Job\*\*\s*[:\-]?\s*(.+)$', re.IGNORECASE)
+_RE_VALUE = re.compile(r'^-\s*\*\*Value\*\*\s*[:\-]?\s*(.+)$', re.IGNORECASE)
+_RE_SATISFACTION = re.compile(r'^-\s*\*\*Satisfaction\*\*\s*[:\-]?\s*(.+)$', re.IGNORECASE)
+_RE_IMPORTANCE = re.compile(r'^-\s*\*\*Importance\*\*\s*[:\-]?\s*(.+)$', re.IGNORECASE)
+_RE_CATEGORY_HEADER = re.compile(r'^#{3,4}\s*(Functional|Emotional|Social)\s*$', re.IGNORECASE)
+_RE_RELATED_JOBS_HEADER = re.compile(r'^#{2,3}\s*Related\s*Jobs\s*$', re.IGNORECASE)
+
+
+def _extract_related_jobs(markdown: str) -> tuple:
+    """
+    Extract related jobs data from markdown.
+    Returns (table_html_fragment, modified_markdown_without_related_jobs).
+    If no related jobs found, returns (None, markdown).
+    """
+    lines = markdown.split('\n')
+    in_related_section = False
+    current_category = None
+    current_entry = {}
+    entries = []
+    related_start = -1
+    related_end = -1
+
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+
+        if not in_related_section:
+            if _RE_RELATED_JOBS_HEADER.match(stripped):
+                in_related_section = True
+                related_start = i
+                i += 1
+                continue
+            i += 1
+            continue
+
+        # We're inside the Related Jobs section
+        if stripped.startswith('#') and not _RE_CATEGORY_HEADER.match(stripped):
+            # Another heading ended the section
+            related_end = i
+            break
+
+        cat_match = _RE_CATEGORY_HEADER.match(stripped)
+        if cat_match:
+            # Flush previous entry
+            if current_entry:
+                entries.append(current_entry)
+                current_entry = {}
+            current_category = cat_match.group(1).capitalize()
+            i += 1
+            continue
+
+        job_match = _RE_JOB.match(stripped)
+        if job_match:
+            if current_entry:
+                entries.append(current_entry)
+            current_entry = {
+                'category': current_category or 'Other',
+                'job': job_match.group(1).strip(),
+                'value': '-',
+                'satisfaction': '-',
+                'importance': '-'
+            }
+            i += 1
+            continue
+
+        value_match = _RE_VALUE.match(stripped)
+        if value_match and current_entry:
+            current_entry['value'] = value_match.group(1).strip()
+            i += 1
+            continue
+
+        sat_match = _RE_SATISFACTION.match(stripped)
+        if sat_match and current_entry:
+            current_entry['satisfaction'] = sat_match.group(1).strip()
+            i += 1
+            continue
+
+        imp_match = _RE_IMPORTANCE.match(stripped)
+        if imp_match and current_entry:
+            current_entry['importance'] = imp_match.group(1).strip()
+            i += 1
+            continue
+
+        # Empty lines within related section are okay
+        if stripped == '':
+            i += 1
+            continue
+
+        i += 1
+
+    if in_related_section:
+        if related_end == -1:
+            related_end = len(lines)
+        if current_entry:
+            entries.append(current_entry)
+
+    if not entries:
+        return None, markdown
+
+    # Build table HTML
+    table_html = '<div class="related-jobs-table-wrapper">\n'
+    table_html += '<table class="related-jobs-table">\n'
+    table_html += '<thead><tr>'
+    table_html += '<th>Category</th><th>Job</th><th>Value</th><th>Satisfaction</th><th>Importance</th>'
+    table_html += '</tr></thead>\n<tbody>\n'
+
+    cat_colors = {
+        'Functional': 'cat-functional',
+        'Emotional': 'cat-emotional',
+        'Social': 'cat-social'
+    }
+
+    for entry in entries:
+        cat_cls = cat_colors.get(entry['category'], '')
+        sat_badge = _satisfaction_badge(entry['satisfaction']) if entry['satisfaction'] != '-' else '<span class="satisfaction-badge sat-default">-</span>'
+        imp_badge = _importance_badge(entry['importance']) if entry['importance'] != '-' else '<span class="importance-badge importance-default">-</span>'
+
+        table_html += '<tr>\n'
+        table_html += f'  <td><span class="category-pill {cat_cls}">{entry["category"]}</span></td>\n'
+        table_html += f'  <td class="job-cell">{entry["job"]}</td>\n'
+        table_html += f'  <td>{entry["value"]}</td>\n'
+        table_html += f'  <td>{sat_badge}</td>\n'
+        table_html += f'  <td>{imp_badge}</td>\n'
+        table_html += '</tr>\n'
+
+    table_html += '</tbody></table>\n</div>\n'
+
+    # Reconstruct markdown without the related jobs section
+    before = lines[:related_start]
+    after = lines[related_end:]
+
+    # Use a bracket placeholder that survives markdown conversion
+    # (HTML comments get escaped; brackets pass through as plain text)
+    placeholder = '\n[[RELATED_JOBS_TABLE]]\n'
+    new_markdown = '\n'.join(before) + placeholder + '\n'.join(after)
+
+    return table_html, new_markdown
 
 
 # ── HTML Report Generator ──────────────────────────────────────────────────
@@ -286,7 +575,19 @@ def generate_report(folder_path: str) -> str:
             content = f.read()
 
         total_words += len(content.split())
-        html_content = converter.convert(content)
+
+        # Extract related jobs table from raw markdown
+        related_table, modified_content = _extract_related_jobs(content)
+
+        if related_table:
+            # Split at placeholder and convert parts separately
+            # (avoids placeholder being mangled by markdown formatting)
+            parts = modified_content.split('[[RELATED_JOBS_TABLE]]')
+            before_html = converter.convert(parts[0])
+            after_html = converter.convert(parts[1]) if len(parts) > 1 else ''
+            html_content = before_html + f'<h3>Related Jobs</h3>\n{related_table}' + after_html
+        else:
+            html_content = converter.convert(content)
 
         sections.append({
             'id': section_id,
@@ -299,8 +600,8 @@ def generate_report(folder_path: str) -> str:
     reading_label = f'{minutes} min read' if minutes > 1 else '1 min read'
 
     folder_name = os.path.basename(folder_path)
-    match = re.match(r'^\d{8}-(.+)$', folder_name)
-    problem_name = match.group(1).replace('-', ' ').title() if match else folder_name
+    match = re.match(r'^(\d{8})-(.+)$', folder_name)
+    problem_name = match.group(2).replace('-', ' ').title() if match else folder_name
     date_str = match.group(0)[:8] if match else datetime.now().strftime('%Y%m%d')
     formatted_date = datetime.strptime(date_str, '%Y%m%d').strftime('%B %d, %Y')
 
@@ -314,20 +615,32 @@ def generate_report(folder_path: str) -> str:
 
 
 def _build_html(title: str, date: str, reading_time: str, word_count: int, sections: list) -> str:
+    username = getpass.getuser()
+
     nav_items = '\n'.join(
         f'<li><a href="#{s["id"]}" class="nav-link">{s["title"]}</a></li>'
         for s in sections
     )
 
-    sections_html = '\n'.join(
-        f'''<section id="{s["id"]}" class="discovery-section">
-            <h2 class="section-title">{s["title"]}</h2>
-            <div class="section-content">
-                {s["html"]}
-            </div>
-        </section>'''
-        for s in sections
-    )
+    section_blocks = []
+    for s in sections:
+        # Skip section title if it duplicates the first heading in content
+        skip_title = _headings_match(s['title'], s['html'])
+
+        title_html = ''
+        if not skip_title:
+            title_html = f'<h2 class="section-title">{s["title"]}</h2>'
+
+        section_blocks.append(
+            f'''<section id="{s["id"]}" class="discovery-section">
+                {title_html}
+                <div class="section-content">
+                    {s["html"]}
+                </div>
+            </section>'''
+        )
+
+    sections_html = '\n'.join(section_blocks)
 
     return f'''<!DOCTYPE html>
 <html lang="en">
@@ -337,24 +650,40 @@ def _build_html(title: str, date: str, reading_time: str, word_count: int, secti
     <title>{title} — Product Discovery Report</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
         :root {{
-            --bg-warm: #faf9f7; --bg-white: #ffffff; --bg-accent: #f5f3ef;
-            --text-primary: #1a1a1a; --text-secondary: #4a4a4a; --text-muted: #737373; --text-light: #999999;
-            --accent-orange: #e65100; --accent-blue: #2563eb; --accent-soft: #fef3e2;
-            --border-light: #e8e6e1; --border-medium: #d4d0c8;
-            --shadow-soft: 0 1px 3px rgba(0,0,0,0.04); --shadow-medium: 0 4px 20px rgba(0,0,0,0.06);
-            --radius-sm: 6px; --radius-md: 12px;
+            /* Gentle dark palette — soft grays, never pure black/white */
+            --bg-primary: #141416;
+            --bg-secondary: #1a1a1d;
+            --bg-tertiary: #202023;
+            --bg-elevated: #252529;
+            --text-primary: #e2e2e6;
+            --text-secondary: #a0a0a8;
+            --text-muted: #6e6e78;
+            --text-faint: #4a4a52;
+            --accent-orange: #e88b4a;
+            --accent-orange-soft: rgba(232, 139, 74, 0.12);
+            --accent-blue: #6ba3e0;
+            --accent-green: #7cc09a;
+            --accent-yellow: #d4a954;
+            --accent-red: #d97a7a;
+            --border-light: #2a2a2e;
+            --border-medium: #333338;
+            --shadow-soft: 0 1px 3px rgba(0,0,0,0.2);
+            --shadow-medium: 0 4px 20px rgba(0,0,0,0.3);
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
         }}
         html {{ scroll-behavior: smooth; scroll-padding-top: 80px; }}
         body {{
-            font-family: 'Merriweather', Georgia, serif;
-            font-size: 18px;
-            line-height: 1.8;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 16px;
+            line-height: 1.7;
             color: var(--text-primary);
-            background: var(--bg-warm);
+            background: var(--bg-primary);
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }}
@@ -362,8 +691,8 @@ def _build_html(title: str, date: str, reading_time: str, word_count: int, secti
             max-width: 1200px;
             margin: 0 auto;
             display: grid;
-            grid-template-columns: 260px 1fr;
-            gap: 60px;
+            grid-template-columns: 240px 1fr;
+            gap: 56px;
             padding: 0 40px;
         }}
         @media (max-width: 900px) {{
@@ -377,12 +706,11 @@ def _build_html(title: str, date: str, reading_time: str, word_count: int, secti
         }}
         @media (max-width: 900px) {{ .sidebar {{ display: none; }} }}
         .sidebar-title {{
-            font-family: 'Inter', sans-serif;
             font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 1.5px;
-            color: var(--text-light);
+            color: var(--text-faint);
             margin-bottom: 20px;
             padding-bottom: 12px;
             border-bottom: 1px solid var(--border-light);
@@ -391,7 +719,6 @@ def _build_html(title: str, date: str, reading_time: str, word_count: int, secti
         .nav-list li {{ margin-bottom: 4px; }}
         .nav-link {{
             display: block;
-            font-family: 'Inter', sans-serif;
             font-size: 13px;
             font-weight: 400;
             color: var(--text-muted);
@@ -401,16 +728,15 @@ def _build_html(title: str, date: str, reading_time: str, word_count: int, secti
             transition: all 0.2s ease;
             line-height: 1.4;
         }}
-        .nav-link:hover {{ color: var(--text-primary); background: var(--bg-accent); }}
-        .nav-link.active {{ color: var(--accent-orange); background: var(--accent-soft); font-weight: 500; }}
-        .main-content {{ max-width: 700px; padding: 60px 0 100px; }}
+        .nav-link:hover {{ color: var(--text-primary); background: var(--bg-tertiary); }}
+        .nav-link.active {{ color: var(--accent-orange); background: var(--accent-orange-soft); font-weight: 500; }}
+        .main-content {{ max-width: 720px; padding: 60px 0 100px; }}
         .hero {{
-            margin-bottom: 60px;
-            padding-bottom: 40px;
+            margin-bottom: 56px;
+            padding-bottom: 36px;
             border-bottom: 1px solid var(--border-light);
         }}
         .hero-label {{
-            font-family: 'Inter', sans-serif;
             font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
@@ -419,15 +745,14 @@ def _build_html(title: str, date: str, reading_time: str, word_count: int, secti
             margin-bottom: 20px;
         }}
         .hero-title {{
-            font-family: 'Playfair Display', Georgia, serif;
-            font-size: 42px;
+            font-size: 40px;
             font-weight: 700;
             line-height: 1.2;
             color: var(--text-primary);
             margin-bottom: 24px;
-            letter-spacing: -0.5px;
+            letter-spacing: -0.8px;
         }}
-        @media (max-width: 600px) {{ .hero-title {{ font-size: 32px; }} }}
+        @media (max-width: 600px) {{ .hero-title {{ font-size: 30px; }} }}
         .hero-meta {{
             display: flex;
             align-items: center;
@@ -438,21 +763,19 @@ def _build_html(title: str, date: str, reading_time: str, word_count: int, secti
             display: flex;
             align-items: center;
             gap: 8px;
-            font-family: 'Inter', sans-serif;
-            font-size: 14px;
+            font-size: 13px;
             color: var(--text-muted);
         }}
-        .meta-icon {{ font-size: 16px; }}
+        .meta-icon {{ font-size: 15px; }}
         .reading-time {{
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            font-family: 'Inter', sans-serif;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 500;
             color: var(--accent-orange);
-            background: var(--accent-soft);
-            padding: 6px 14px;
+            background: var(--accent-orange-soft);
+            padding: 5px 12px;
             border-radius: 20px;
         }}
         .progress-bar {{
@@ -460,146 +783,237 @@ def _build_html(title: str, date: str, reading_time: str, word_count: int, secti
             height: 3px;
             background: var(--border-light);
             border-radius: 2px;
-            margin: 30px 0;
+            margin: 28px 0;
             overflow: hidden;
         }}
         .progress-fill {{
             height: 100%;
             width: 100%;
-            background: linear-gradient(90deg, var(--accent-orange), #f57c00);
+            background: linear-gradient(90deg, var(--accent-orange), #c77a3e);
             border-radius: 2px;
         }}
-        .discovery-section {{ margin-bottom: 80px; }}
+        .discovery-section {{ margin-bottom: 72px; }}
         .section-title {{
-            font-family: 'Playfair Display', Georgia, serif;
-            font-size: 28px;
+            font-size: 26px;
             font-weight: 600;
             color: var(--text-primary);
-            margin-bottom: 32px;
-            padding-bottom: 16px;
-            border-bottom: 2px solid var(--border-light);
+            margin-bottom: 28px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--border-medium);
         }}
         h1 {{
-            font-family: 'Playfair Display', Georgia, serif;
-            font-size: 36px;
+            font-size: 32px;
             font-weight: 700;
             line-height: 1.3;
-            margin: 48px 0 24px;
+            margin: 44px 0 22px;
             color: var(--text-primary);
+            letter-spacing: -0.4px;
         }}
         h2 {{
-            font-family: 'Playfair Display', Georgia, serif;
-            font-size: 28px;
+            font-size: 26px;
             font-weight: 600;
             line-height: 1.3;
-            margin: 40px 0 20px;
+            margin: 36px 0 18px;
             color: var(--text-primary);
+            letter-spacing: -0.3px;
         }}
         h3 {{
-            font-family: 'Inter', sans-serif;
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 600;
             line-height: 1.4;
-            margin: 32px 0 16px;
+            margin: 28px 0 14px;
             color: var(--text-primary);
         }}
         h4 {{
-            font-family: 'Inter', sans-serif;
-            font-size: 16px;
+            font-size: 13px;
             font-weight: 600;
             line-height: 1.4;
-            margin: 24px 0 12px;
+            margin: 22px 0 10px;
             color: var(--text-secondary);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.6px;
         }}
         p {{
-            margin-bottom: 1.5em;
+            margin-bottom: 1.4em;
             color: var(--text-secondary);
         }}
-        p strong {{ color: var(--text-primary); font-weight: 700; }}
+        p strong {{ color: var(--text-primary); font-weight: 600; }}
         ul, ol {{
-            margin: 0 0 1.5em 1.5em;
+            margin: 0 0 1.4em 1.3em;
             color: var(--text-secondary);
         }}
-        li {{ margin-bottom: 0.6em; line-height: 1.7; }}
+        li {{ margin-bottom: 0.5em; line-height: 1.65; }}
         li::marker {{ color: var(--accent-orange); }}
         blockquote {{
-            margin: 32px 0;
-            padding: 24px 32px;
-            background: var(--bg-accent);
-            border-left: 4px solid var(--accent-orange);
+            margin: 28px 0;
+            padding: 22px 28px;
+            background: var(--bg-secondary);
+            border-left: 3px solid var(--accent-orange);
             border-radius: 0 var(--radius-md) var(--radius-md) 0;
-            font-style: italic;
         }}
         blockquote p {{
             margin-bottom: 0;
             color: var(--text-secondary);
-            font-size: 17px;
-            line-height: 1.7;
+            font-size: 15px;
+            line-height: 1.65;
+            font-style: italic;
         }}
         blockquote p:last-child {{ margin-bottom: 0; }}
         .table-wrapper {{
             overflow-x: auto;
-            margin: 32px 0;
+            margin: 28px 0;
             border-radius: var(--radius-md);
-            box-shadow: var(--shadow-soft);
+            border: 1px solid var(--border-light);
         }}
         table {{
             width: 100%;
             border-collapse: collapse;
-            font-family: 'Inter', sans-serif;
-            font-size: 14px;
-            background: var(--bg-white);
+            font-size: 13px;
+            background: var(--bg-secondary);
         }}
         th {{
-            background: var(--bg-accent);
+            background: var(--bg-tertiary);
             color: var(--text-primary);
             font-weight: 600;
             text-align: left;
-            padding: 14px 18px;
-            border-bottom: 2px solid var(--border-medium);
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-medium);
             text-transform: uppercase;
-            font-size: 11px;
-            letter-spacing: 0.8px;
+            font-size: 10px;
+            letter-spacing: 0.7px;
         }}
         td {{
-            padding: 14px 18px;
+            padding: 12px 16px;
             border-bottom: 1px solid var(--border-light);
             color: var(--text-secondary);
             line-height: 1.5;
         }}
-        tr:hover td {{ background: var(--bg-warm); }}
+        tr:hover td {{ background: var(--bg-tertiary); }}
         tr:last-child td {{ border-bottom: none; }}
+
+        /* ── Importance Badges ──────────────────────────────────────────────── */
+        .importance-badge, .satisfaction-badge {{
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 20px;
+            white-space: nowrap;
+            letter-spacing: 0.2px;
+        }}
+        .importance-critical {{
+            background: rgba(217, 122, 122, 0.15);
+            color: #e09090;
+        }}
+        .importance-critical::before {{ content: "🔴"; font-size: 8px; }}
+        .importance-important {{
+            background: rgba(212, 169, 84, 0.15);
+            color: #dfc07a;
+        }}
+        .importance-important::before {{ content: "🟠"; font-size: 8px; }}
+        .importance-moderate {{
+            background: rgba(107, 163, 224, 0.12);
+            color: #8ab8e8;
+        }}
+        .importance-moderate::before {{ content: "🔵"; font-size: 8px; }}
+        .importance-low {{
+            background: rgba(124, 192, 154, 0.12);
+            color: #9dd4b2;
+        }}
+        .importance-low::before {{ content: "🟢"; font-size: 8px; }}
+        .importance-default {{
+            background: var(--bg-elevated);
+            color: var(--text-muted);
+        }}
+
+        .satisfaction-badge {{ padding: 2px 8px; font-size: 11px; font-weight: 500; }}
+        .sat-poor {{ background: rgba(217, 122, 122, 0.12); color: #e09090; }}
+        .sat-okay {{ background: rgba(212, 169, 84, 0.12); color: #dfc07a; }}
+        .sat-good {{ background: rgba(124, 192, 154, 0.12); color: #9dd4b2; }}
+        .sat-excellent {{ background: rgba(107, 163, 224, 0.12); color: #8ab8e8; }}
+        .sat-default {{ background: var(--bg-elevated); color: var(--text-muted); }}
+
+        /* ── Related Jobs Table ─────────────────────────────────────────────── */
+        .related-jobs-table-wrapper {{
+            overflow-x: auto;
+            margin: 24px 0;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-light);
+        }}
+        .related-jobs-table {{
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            background: var(--bg-secondary);
+        }}
+        .related-jobs-table th {{
+            background: var(--bg-tertiary);
+            padding: 12px 14px;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            font-weight: 600;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-medium);
+            text-align: left;
+        }}
+        .related-jobs-table td {{
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border-light);
+            color: var(--text-secondary);
+            line-height: 1.5;
+            vertical-align: top;
+        }}
+        .related-jobs-table tr:last-child td {{ border-bottom: none; }}
+        .related-jobs-table tr:hover td {{ background: var(--bg-tertiary); }}
+        .related-jobs-table .job-cell {{
+            color: var(--text-primary);
+            font-weight: 500;
+            max-width: 320px;
+        }}
+        .category-pill {{
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 3px 10px;
+            border-radius: 20px;
+        }}
+        .cat-functional {{ background: rgba(107, 163, 224, 0.15); color: #8ab8e8; }}
+        .cat-emotional {{ background: rgba(217, 122, 122, 0.15); color: #e09090; }}
+        .cat-social {{ background: rgba(124, 192, 154, 0.15); color: #9dd4b2; }}
+
         code {{
-            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
-            font-size: 0.85em;
-            background: var(--bg-accent);
-            padding: 2px 8px;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Fira Code', monospace;
+            font-size: 0.82em;
+            background: var(--bg-tertiary);
+            padding: 2px 7px;
             border-radius: 4px;
             color: var(--accent-blue);
         }}
         pre {{
-            background: var(--bg-white);
+            background: var(--bg-secondary);
             border: 1px solid var(--border-light);
             border-radius: var(--radius-md);
-            padding: 24px;
+            padding: 22px;
             overflow-x: auto;
-            margin: 24px 0;
-            box-shadow: var(--shadow-soft);
+            margin: 22px 0;
         }}
         pre code {{
             background: none;
             padding: 0;
             color: var(--text-primary);
-            font-size: 14px;
-            line-height: 1.6;
+            font-size: 13px;
+            line-height: 1.55;
         }}
         hr {{
             border: none;
             height: 1px;
             background: var(--border-light);
-            margin: 48px 0;
+            margin: 40px 0;
         }}
         a {{
             color: var(--accent-blue);
@@ -608,17 +1022,38 @@ def _build_html(title: str, date: str, reading_time: str, word_count: int, secti
             transition: border-color 0.2s ease;
         }}
         a:hover {{ border-bottom-color: var(--accent-blue); }}
+
+        /* ── Footer ─────────────────────────────────────────────────────────── */
+        .report-footer {{
+            margin-top: 72px;
+            padding: 32px 0;
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }}
+        .report-footer a {{
+            color: var(--text-secondary);
+            border-bottom-color: var(--border-medium);
+        }}
+        .report-footer a:hover {{ color: var(--accent-blue); border-bottom-color: var(--accent-blue); }}
+
         @media print {{
             .sidebar {{ display: none; }}
             .page-wrapper {{ grid-template-columns: 1fr; max-width: 100%; }}
             .main-content {{ max-width: 100%; padding: 0; }}
-            body {{ font-size: 12pt; line-height: 1.5; background: white; }}
-            .discovery-section {{ break-inside: avoid; margin-bottom: 40px; }}
+            body {{ font-size: 11pt; line-height: 1.5; background: white; color: #222; }}
+            .discovery-section {{ break-inside: avoid; margin-bottom: 32px; }}
+            .report-footer {{ border-color: #ddd; color: #666; }}
         }}
         ::-webkit-scrollbar {{ width: 8px; }}
         ::-webkit-scrollbar-track {{ background: transparent; }}
         ::-webkit-scrollbar-thumb {{ background: var(--border-medium); border-radius: 4px; }}
-        ::-webkit-scrollbar-thumb:hover {{ background: var(--text-light); }}
+        ::-webkit-scrollbar-thumb:hover {{ background: var(--text-faint); }}
     </style>
 </head>
 <body>
@@ -641,8 +1076,9 @@ def _build_html(title: str, date: str, reading_time: str, word_count: int, secti
                 <div class="progress-bar"><div class="progress-fill"></div></div>
             </header>
             {sections_html}
-            <footer style="margin-top: 80px; padding-top: 40px; border-top: 1px solid var(--border-light); text-align: center; font-family: 'Inter', sans-serif; font-size: 13px; color: var(--text-light);">
-                Generated by Product Discovery Manager
+            <footer class="report-footer">
+                <span>Generated by: {username} based on product discovery tools by <strong>stnkcl</strong></span>
+                <span>Get the tool from <a href="{GITHUB_LINK}" target="_blank">GitHub</a></span>
             </footer>
         </main>
     </div>

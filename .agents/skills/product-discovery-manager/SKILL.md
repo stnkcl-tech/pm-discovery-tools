@@ -53,19 +53,13 @@ Goal: Identify the jobs users hire products to do and why those jobs matter.
 **Prerequisite**: Read `Discovery/_context/Jobs-to-be-Done-Framework.pdf` and `Discovery/_context/Jobs-to-be-Done-Product-Framework-Guide.pdf`. Apply Ulwick's JTBD framework for defining, categorizing, and capturing customer needs.
 
 1. **Identify the core functional job** — The main task the user is trying to accomplish.
-2. **Identify related jobs** across three dimensions:
-   - **Functional**: Practical, task-oriented jobs
-   - **Emotional**: How the user wants to feel
-   - **Social**: How the user wants to be perceived
-3. **Formulate JTBD statements** using:
-   > When I **[situation]**, I want to **[motivation]**, so I can **[expected outcome]**.
-
-   For each job, document:
-   - Job statement
-   - **Value of completion** (why it matters)
+2. **Identify related jobs** across three dimensions. For each job (including related jobs), document:
+   - **Job statement** using: *When I [situation], I want to [motivation], so I can [expected outcome].*
+   - **Category**: Functional / Emotional / Social
+   - **Value**: Why completing this job matters
    - **Current satisfaction** (frustrated / tolerating / satisfied, or 1–5)
    - **Importance** (critical / important / nice-to-have)
-4. **Validate** — Present the list to the user and ask: "Does this capture what you're trying to accomplish? What's missing or mischaracterized?"
+3. **Validate** — Present the list to the user and ask: "Does this capture what you're trying to accomplish? What's missing or mischaracterized?"
 
 ### Phase 3: Competitive Landscape & Existing Solutions
 
@@ -133,7 +127,24 @@ At the end of discovery, produce this structured summary:
 - **Importance**: [Critical/Important/Nice-to-have]
 
 ### Related Jobs
-[Repeat format]
+
+#### Functional
+- **Job**: [Statement]
+- **Value**: [Why it matters]
+- **Satisfaction**: [Current level]
+- **Importance**: [Critical/Important/Nice-to-have]
+
+#### Emotional
+- **Job**: [Statement]
+- **Value**: [Why it matters]
+- **Satisfaction**: [Current level]
+- **Importance**: [Critical/Important/Nice-to-have]
+
+#### Social
+- **Job**: [Statement]
+- **Value**: [Why it matters]
+- **Satisfaction**: [Current level]
+- **Importance**: [Critical/Important/Nice-to-have]
 
 ## 3. Existing Solutions & Gaps
 
@@ -152,6 +163,22 @@ At the end of discovery, produce this structured summary:
 | Stage | User Action | Touchpoint | Pain Point | Emotion | Opportunity |
 |-------|-------------|------------|------------|---------|-------------|
 | ...   | ...         | ...        | ...        | ...     | ...         |
+
+## 6. Discovery Synthesis & Next Steps
+
+### What We Learned
+1. [Key insight — the most important thing this discovery revealed about the problem space]
+2. [Pattern or theme that emerged across phases]
+3. [Counterintuitive finding or surprise]
+4. [The biggest risk or uncertainty that remains]
+
+### Recommended Next Steps
+1. **[Actionable step]** — [Why this matters and what it validates]
+2. **[Actionable step]** — [Why this matters and what it validates]
+3. **[Actionable step]** — [Why this matters and what it validates]
+4. **[Actionable step]** — [Why this matters and what it validates]
+
+> Tie each recommended next step to a specific discovery artifact (e.g., "Validate the core job statement with 3 target users" or "Prototype the highest-opportunity journey stage"). Discovery is only valuable if it leads to action.
 ```
 
 ## Output Storage & Reporting
@@ -172,10 +199,10 @@ Discovery/
 ```
 
 The HTML report is auto-generated with:
-- **Typography**: Playfair Display (headings) + Merriweather (body) — free Google Fonts
-- **Reading time**: Estimated at 200 WPM, displayed in a Medium-style badge
-- **Design**: Warm off-white background, generous whitespace, sticky phase navigation
-- **Highlights**: JTBD in elegant blockquotes, metrics in clean tables, key findings emphasized
+- **Typography**: Inter (sans-serif) throughout — clean, modern, inspired by mellow.dev
+- **Reading time**: Estimated at 200 WPM, displayed in a subtle badge
+- **Design**: Gentle dark mode (soft charcoal background, warm text tones — never pure black/white), generous whitespace, sticky phase navigation
+- **Highlights**: JTBD in elegant blockquotes, related jobs rendered as a data table with category pills and importance badges, metrics in clean tables, key findings emphasized
 
 When using the web interface, click **"Save"** after each phase to persist outputs, then **"Report"** to generate the final HTML. When using CLI mode, ask the user if they want to save the discovery to a dated folder.
 

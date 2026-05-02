@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Product Discovery Manager</title>
+    <title>Product Discovery Manager + Solution Architect</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,21 +14,25 @@
         <!-- Header -->
         <header class="header">
             <div class="header-brand">
-                <div class="logo">🔍</div>
+                <div class="logo" id="header-logo">🔍</div>
                 <div class="brand-text">
-                    <h1>Product Discovery Manager</h1>
-                    <span class="subtitle">Structured customer discovery powered by JTBD</span>
+                    <h1 id="header-title">Product Discovery Manager</h1>
+                    <span class="subtitle" id="header-subtitle">Structured customer discovery powered by JTBD</span>
                 </div>
             </div>
             <div class="header-actions">
+                <select id="skill-select" class="session-select" title="Switch skill">
+                    <option value="discovery">🔍 Discovery</option>
+                    <option value="solution">🛠️ Solution</option>
+                </select>
                 <select id="session-select" class="session-select">
                     <option value="">New Session</option>
                 </select>
-                <button id="save-discovery-btn" class="btn btn-secondary" title="Save to discoveries folder" disabled>💾 Save</button>
+                <button id="save-btn" class="btn btn-secondary" title="Save to folder" disabled>💾 Save</button>
                 <button id="generate-report-btn" class="btn btn-secondary" title="Generate HTML report" disabled>📄 Report</button>
                 <button id="export-btn" class="btn btn-secondary" title="Export as Markdown" disabled>📥 Export</button>
                 <button id="clear-btn" class="btn btn-ghost" title="Clear conversation">🗑️ Clear</button>
-                <button id="discoveries-btn" class="btn btn-ghost" title="Browse discoveries">📂</button>
+                <button id="browse-btn" class="btn btn-ghost" title="Browse saved outputs">📂</button>
             </div>
         </header>
 
@@ -37,50 +41,16 @@
             <!-- Left Sidebar: Phase Tracker -->
             <aside class="sidebar">
                 <div class="sidebar-header">
-                    <h3>Discovery Phases</h3>
+                    <h3 id="sidebar-title">Discovery Phases</h3>
                     <span id="current-phase-badge" class="phase-badge">Phase 1</span>
                 </div>
-                <div class="phases-list">
-                    <div class="phase-item active" data-phase="1">
-                        <div class="phase-number">1</div>
-                        <div class="phase-info">
-                            <div class="phase-name">Problem Elicitation</div>
-                            <div class="phase-desc">Validate the problem statement</div>
-                        </div>
-                    </div>
-                    <div class="phase-item" data-phase="2">
-                        <div class="phase-number">2</div>
-                        <div class="phase-info">
-                            <div class="phase-name">JTBD Analysis</div>
-                            <div class="phase-desc">Identify core and related jobs</div>
-                        </div>
-                    </div>
-                    <div class="phase-item" data-phase="3">
-                        <div class="phase-number">3</div>
-                        <div class="phase-info">
-                            <div class="phase-name">Competitive Landscape</div>
-                            <div class="phase-desc">Map solutions and gaps</div>
-                        </div>
-                    </div>
-                    <div class="phase-item" data-phase="4">
-                        <div class="phase-number">4</div>
-                        <div class="phase-info">
-                            <div class="phase-name">Success Metrics</div>
-                            <div class="phase-desc">Define measurable outcomes</div>
-                        </div>
-                    </div>
-                    <div class="phase-item" data-phase="5">
-                        <div class="phase-number">5</div>
-                        <div class="phase-info">
-                            <div class="phase-name">User Journey Mapping</div>
-                            <div class="phase-desc">Visualize the experience</div>
-                        </div>
-                    </div>
+                <div class="phases-list" id="phases-list">
+                    <!-- Phases populated dynamically by JS based on selected skill -->
                 </div>
                 <div class="sidebar-footer">
                     <div class="hint">
                         <span class="hint-icon">💡</span>
-                        <span class="hint-text">Kimi triggers the <code>product-discovery-manager</code> skill automatically</span>
+                        <span class="hint-text" id="sidebar-hint">Kimi triggers the skill automatically based on your messages</span>
                     </div>
                 </div>
             </aside>
@@ -90,9 +60,9 @@
                 <!-- Landing State -->
                 <div id="landing-state" class="landing-state">
                     <div class="landing-content">
-                        <div class="landing-icon">🎯</div>
-                        <h2>What problem are you trying to solve?</h2>
-                        <p>Describe your customer problem or product idea. The Product Discovery Manager will guide you through a structured 5-phase discovery process.</p>
+                        <div class="landing-icon" id="landing-icon">🎯</div>
+                        <h2 id="landing-heading">What problem are you trying to solve?</h2>
+                        <p id="landing-desc">Describe your customer problem or product idea. The Product Discovery Manager will guide you through a structured discovery process.</p>
                         <div class="landing-input-wrapper">
                             <textarea 
                                 id="problem-input" 
@@ -101,11 +71,11 @@
                                 rows="5"
                             ></textarea>
                             <button id="start-btn" class="btn btn-primary btn-large">
-                                <span>Start Discovery</span>
+                                <span id="start-btn-text">Start Discovery</span>
                                 <span class="btn-arrow">→</span>
                             </button>
                         </div>
-                        <div class="landing-examples">
+                        <div class="landing-examples" id="landing-examples">
                             <span class="examples-label">Try an example:</span>
                             <button class="example-chip" data-example="Small business owners waste hours manually reconciling invoices across multiple tools because no single platform integrates billing, accounting, and payment tracking seamlessly.">Invoice reconciliation</button>
                             <button class="example-chip" data-example="Remote teams struggle to maintain culture and connection because existing communication tools are async-only and don't support spontaneous, informal interactions.">Remote team culture</button>
@@ -116,11 +86,11 @@
 
                 <!-- Chat Messages -->
                 <div id="chat-messages" class="chat-messages hidden">
-                    <div class="welcome-message">
+                    <div class="welcome-message" id="welcome-message">
                         <div class="message-avatar">🤖</div>
                         <div class="message-content">
-                            <div class="message-sender">Product Discovery Manager</div>
-                            <div class="message-text">
+                            <div class="message-sender" id="welcome-sender">Product Discovery Manager</div>
+                            <div class="message-text" id="welcome-text">
                                 <p>Hello! I'm your Product Discovery Manager. I'll guide you through a structured discovery process grounded in Cagan's product model principles and the Jobs-to-be-Done framework.</p>
                                 <p>Let's start by understanding your problem. Please describe the customer problem or need you're exploring, and I'll begin Phase 1: Problem Elicitation.</p>
                             </div>
@@ -160,16 +130,16 @@
         </div>
     </div>
 
-    <!-- Discoveries Modal -->
-    <div id="discoveries-modal" class="modal hidden">
+    <!-- Browse Modal -->
+    <div id="browse-modal" class="modal hidden">
         <div class="modal-overlay"></div>
         <div class="modal-content">
             <div class="modal-header">
-                <h2>📂 Discovery Reports</h2>
+                <h2 id="browse-modal-title">📂 Saved Outputs</h2>
                 <button id="close-modal" class="btn btn-ghost">✕</button>
             </div>
-            <div id="discoveries-list" class="discoveries-list">
-                <p class="empty-state">No discoveries yet. Start a discovery session and save it!</p>
+            <div id="browse-list" class="discoveries-list">
+                <p class="empty-state">No saved outputs yet. Start a session and save it!</p>
             </div>
         </div>
     </div>

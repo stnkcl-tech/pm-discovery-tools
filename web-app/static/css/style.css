@@ -184,6 +184,12 @@ html, body {
     border-color: var(--color-primary);
 }
 
+#skill-select {
+    min-width: 120px;
+    border-color: var(--color-primary);
+    background: rgba(232, 139, 74, 0.08);
+}
+
 /* ── Main Layout ────────────────────────────────────────────────────────── */
 
 .main-layout {
