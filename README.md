@@ -1,19 +1,55 @@
-# Product Discovery Manager
+# AI PM Skills
 
-A structured workspace and web interface for conducting customer discovery using proven product management frameworks. Grounded in Marty Cagan's product model principles, Jobs-to-be-Done (JTBD) theory, and user journey mapping.
+A structured workspace and web interface for product discovery and solution architecture. Grounded in Marty Cagan's product model principles, Jobs-to-be-Done (JTBD) theory, user journey mapping, and low-friction solution design.
 
-> **Built for product managers** who want a systematic, repeatable approach to understanding customer problems before building solutions.
+> **Built for product managers** who want a systematic, repeatable approach to understanding customer problems *and* finding the quickest path to validate solutions.
 
 ---
 
 ## What This Is
 
-This repository gives you two things:
+This repository gives you three things:
 
-1. **Reference Materials** — Curated PDF guides on modern product discovery frameworks (Cagan's *INSPIRED*, JTBD, User Journey Mapping)
-2. **A Web Interface** — A local chat app that guides you through a 5-phase discovery process and generates beautiful HTML reports
+1. **Reference Materials** — Curated PDF guides on product discovery frameworks (Cagan's *INSPIRED*, JTBD, User Journey Mapping) and solution frameworks (Opportunity Solution Trees, RICE Prioritization, T-Shirt Sizing)
+2. **Two Kimi Skills** — `product-discovery-manager` and `solution-architect` skill definitions that auto-trigger via the Kimi CLI
+3. **A Web Interface** — A local chat app that runs both skills, with skill switching, phased workflows, and beautiful HTML reports
 
 You own all your data. Everything runs locally on your machine. No cloud, no subscriptions, no data leaving your device.
+
+---
+
+## The Two Skills
+
+### 🔍 Product Discovery Manager
+Guides structured customer discovery across 5 phases:
+
+| Phase | Output |
+|-------|--------|
+| **1. Problem Elicitation** | Validated problem statement |
+| **2. JTBD Analysis** | Core + related jobs with satisfaction & importance |
+| **3. Competitive Landscape** | Solutions & gaps table |
+| **4. Success Metrics** | Outcome, process, and emotional metrics |
+| **5. User Journey Mapping** | Journey map with pain points & opportunities |
+
+**Skill file:** `.agents/skills/product-discovery-manager/SKILL.md`
+
+### 🛠️ Solution Architect
+Finds the lowest-friction path from discovery to validated solution across 8 phases:
+
+| Phase | Output |
+|-------|--------|
+| **1. Discovery Input** | Synthesized discovery findings |
+| **2. Barrier Analysis** | What prevents users from completing each JTBD |
+| **3. Opportunity Exploration** | Low-tech → no/low-code → SaaS → custom build options |
+| **4. Opportunity Solution Tree** | Visual tree of barriers → opportunities → outcomes |
+| **5. T-Shirt Sizing** | Relative effort estimates (XS–XL) |
+| **6. RICE Prioritization** | Reach × Impact × Confidence / Effort scores |
+| **7. Solution Recommendation** | Next easiest high-impact step |
+| **8. Validation Plan** | Pilot scope, metrics, go/no-go criteria |
+
+**Key principle:** A spreadsheet + WhatsApp group that works today beats an app that ships in 3 months.
+
+**Skill file:** `.agents/skills/solution-architect/SKILL.md`
 
 ---
 
@@ -53,61 +89,31 @@ Then open **http://localhost:5050** in your browser.
 
 ## How to Use
 
-### 1. Start a Discovery
+### Switch Skills
 
-Type your customer problem in the text box and click **Start Discovery**.
+Use the dropdown in the top-right corner to switch between **🔍 Discovery** and **🛠️ Solution** mode.
 
-Example:
-> "Freelance designers struggle to manage scattered client feedback across email, Slack, and Figma comments"
+### Discovery Mode
 
-### 2. Chat Through 5 Phases
+1. **Describe your problem** — Type a customer problem and click **Start Discovery**
+2. **Chat through 5 phases** — The Product Discovery Manager guides you with probing questions
+3. **Save** (💾) — Persists outputs to `Discovery/discoveries/yyyymmdd-problem-name/`
+4. **Report** (📄) — Generates a dark-mode HTML report with tables, badges, and reading time
+5. **Browse** (📂) — View all past discoveries
 
-The Product Discovery Manager (powered by Kimi) will guide you through:
+### Solution Mode
 
-| Phase | What You'll Do | Output |
-|-------|---------------|--------|
-| **1. Problem Elicitation** | Answer probing questions about context, frequency, and impact | A validated problem statement |
-| **2. JTBD Analysis** | Identify the jobs users hire products to do | Core + related jobs with satisfaction scores |
-| **3. Competitive Landscape** | Map existing solutions and their gaps | Solutions & gaps table |
-| **4. Success Metrics** | Define how you'd measure success | Outcome, process, and emotional metrics |
-| **5. User Journey Mapping** | Visualize the end-to-end experience | Journey map table |
-
-### 3. Save Your Work
-
-Click **💾 Save** at any time to persist your discovery to a dated folder:
-
-```
-Discovery/
-└── discoveries/
-    └── 20260502-freelance-designer-feedback/
-        ├── 01-problem-statement.md
-        ├── 02-jobs-to-be-done.md
-        ├── 03-competitive-landscape.md
-        ├── 04-success-metrics.md
-        ├── 05-user-journey-map.md
-        └── summary.md
-```
-
-### 4. Generate a Report
-
-Click **📄 Report** to generate a beautiful HTML report with:
-
-- Medium-style **reading time** estimation
-- Typography-focused design (elegant serif headings + readable body text)
-- Sticky sidebar navigation
-- Highlighted key findings and clean data tables
-
-The report is saved as `index.html` in the same discovery folder. Open it in any browser or print to PDF.
-
-### 5. Browse Past Discoveries
-
-Click **📂 Browse** to see all your saved discoveries and their reports.
+1. **Share discovery output** — Paste your discovery summary or describe the problem space
+2. **Chat through 8 phases** — The Solution Architect explores barriers, opportunities, and sizing
+3. **Save** (💾) — Persists outputs to `Solutions/solutions/yyyymmdd-problem-name/`
+4. **Report** (📄) — Generates the same HTML report format for solution artifacts
+5. **Browse** (📂) — View all past solution reports
 
 ---
 
 ## Reference Materials
 
-The `_context/` folders contain the frameworks that power the discovery process:
+The `_context/` folders contain the frameworks that power both skills:
 
 ### Core Product Model (`_context/`)
 - **INSPIRED** by Marty Cagan — Book summary covering product teams, discovery vs. execution, opportunity assessment
@@ -121,6 +127,8 @@ The `_context/` folders contain the frameworks that power the discovery process:
 
 ### Solution Frameworks (`Solutions/_context/`)
 - **Opportunity Solution Trees** — Framework for connecting opportunities to solutions
+- **RICE Prioritization Framework for Product Managers** — Scoring methodology for prioritization
+- **T-Shirt Sizing** — Relative effort estimation guide
 
 ---
 
@@ -145,12 +153,22 @@ The `_context/` folders contain the frameworks that power the discovery process:
 │           ├── ...
 │           └── index.html
 │
-├── Solutions/                         # ← Your solutioning outputs (gitignored)
-│   └── _context/                      # Solution framework references
-│       └── Opportunity Solution Trees.pdf
+├── Solutions/                         # Solution-phase materials
+│   ├── _context/                      # Solution framework references (tracked)
+│   │   ├── Opportunity Solution Trees.pdf
+│   │   ├── RICE Prioritization Framework for Product Managers.pdf
+│   │   └── T-Shirt Sizing.pdf
+│   └── solutions/                     # ← Your personal solution outputs (gitignored)
+│       └── 20260503-problem-name/
+│           ├── 01-discovery-input.md
+│           ├── 02-barrier-analysis.md
+│           ├── ...
+│           └── index.html
 │
-├── .agents/skills/                    # Kimi skill definition
-│   └── product-discovery-manager/
+├── .agents/skills/                    # Kimi skill definitions
+│   ├── product-discovery-manager/
+│   │   └── SKILL.md
+│   └── solution-architect/
 │       └── SKILL.md
 │
 └── web-app/                           # Local web interface
@@ -164,15 +182,15 @@ The `_context/` folders contain the frameworks that power the discovery process:
         └── js/app.js
 ```
 
-> **Privacy note:** The `Discovery/discoveries/` and `Solutions/` folders are gitignored. When someone forks this repo, they get a clean workspace with only the reference materials — none of your personal discovery work.
+> **Privacy note:** The `Discovery/discoveries/` and `Solutions/solutions/` folders are gitignored. When someone forks this repo, they get a clean workspace with only the reference materials and skill definitions — none of your personal work.
 
 ---
 
 ## Security & Privacy
 
 - **No API keys committed** — The Kimi CLI path defaults to the standard macOS install location. Override with the `KIMI_BIN` environment variable if needed.
-- **Everything runs locally** — Your discovery conversations and reports never leave your machine.
-- **Personal work is gitignored** — Discovery outputs and solutioning results are excluded from version control by default.
+- **Everything runs locally** — Your conversations and reports never leave your machine.
+- **Personal work is gitignored** — Discovery outputs (`Discovery/discoveries/`) and solutioning results (`Solutions/solutions/`) are excluded from version control by default.
 - **No cloud services** — No databases, no third-party APIs, no analytics.
 
 ---
@@ -185,6 +203,7 @@ The `_context/` folders contain the frameworks that power the discovery process:
 | Port 5050 in use | The app auto-detects conflicts. Check the console output for the actual port |
 | Flask server won't start | Ensure Python 3.9+ is installed and `pip3 install -r requirements.txt` succeeded |
 | Reports look plain | Check your internet connection — the HTML report loads fonts from Google Fonts |
+| Skill not triggering | Make sure the Kimi CLI has access to the `.agents/skills/` directory |
 
 ---
 

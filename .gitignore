@@ -71,7 +71,7 @@ temp/
 # They are gitignored so forks start with a clean slate.
 Discovery/discoveries/
 Discovery/discovery-summary-*.md
-Solutions/
+Solutions/solutions/
 
 # ── Kimi / IDE ─────────────────────────────────────────────────────────────
 .kimi/
