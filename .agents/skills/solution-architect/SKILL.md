@@ -12,7 +12,7 @@ Translate validated discovery findings into the lowest-friction, fastest-to-vali
 Before proposing solutions, ground all work in the discovery output and solution-specific frameworks:
 
 ### Discovery Synthesis (Input)
-Read the discovery results from `Discovery/discoveries/yyyymmdd-{problem-name}/` or from a user-provided discovery summary. The acceptable discovery artifact is `discovery-summary-structured-discovery-workflow.md` or the individual phase files (01–05). Extract:
+Read the discovery results from `Discovery/_result/yyyymmdd-{problem-name}/` or from a user-provided discovery summary. The acceptable discovery artifact is `summary.md` or the individual phase files (01–05). Extract:
 - Confirmed problem statement
 - Core and related JTBDs (functional, emotional, social)
 - Existing solutions and their gaps
@@ -33,7 +33,7 @@ Execute these phases in order. Always start from discovery output — never solu
 
 Goal: Load and internalize the discovery findings that will drive solution design.
 
-1. **Locate the discovery output** — Check `Discovery/discoveries/` for the most recent folder matching the problem space. If the user provides a discovery summary directly, use that.
+1. **Locate the discovery output** — Check `Discovery/_result/` for the most recent folder matching the problem space. If the user provides a discovery summary directly, use that.
 2. **Extract the JTBDs** — Identify the core job and all related functional, emotional, and social jobs.
 3. **Note the journey map pain points** — These are the highest-leverage intervention points.
 4. **Confirm with the user** — Summarize what you retrieved: "Based on the discovery, the core job is [X] and the biggest pain point is [Y]. Is this the right starting point?"
@@ -204,11 +204,11 @@ At the end of solutioning, produce this structured summary:
 
 ## Output Storage & Reporting
 
-After completing all 8 phases, the solution results must be saved to the project's `Solutions/solutions/` folder in this structure:
+After completing all 8 phases, the solution results must be saved to the project's `Solutions/_result/` folder in this structure:
 
 ```
 Solutions/
-└── solutions/
+└── _result/
     └── yyyymmdd-{kebab-case-problem-name}/
     ├── 01-discovery-input.md
     ├── 02-barrier-analysis.md

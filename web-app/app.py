@@ -39,7 +39,6 @@ DEFAULT_WORK_DIR = PROJECT_ROOT
 DEFAULT_TIMEOUT = 300  # seconds
 
 # Kimi CLI path: override with KIMI_BIN env var for portability.
-# Default path matches standard macOS Kimi Code CLI install location.
 KIMI_BIN = os.environ.get(
     "KIMI_BIN",
     os.path.expanduser(
@@ -77,38 +76,232 @@ SOLUTION_PHASES = [
     {"id": 8, "name": "Validation Plan", "keywords": ["validation plan", "pilot", "validate", "phase 8"]},
 ]
 
+CHECKPOINT_NAMES = {
+    1: "Ask Probing Questions",
+    2: "Synthesize Problem Statement",
+    3: "JTBD Analysis",
+    4: "Competitive Landscape",
+    5: "Success Metrics",
+    6: "User Journey Mapping",
+    7: "Discovery Summary",
+}
+
+DISCOVERY_CHECKPOINTS = {
+    1: {
+        "instruction": (
+            "You are at CHECKPOINT 1: Problem Elicitation — Ask Probing Questions.\n\n"
+            "Your ONLY task is to ask 3–5 structured probing questions about the user's problem. "
+            "Draw from these categories:\n"
+            "- Context: When does this problem occur? What is the user trying to accomplish?\n"
+            "- Frequency & severity: How often does this happen? What is the impact?\n"
+            "- Current behavior: What do users do today? What workarounds exist?\n"
+            "- User segment: Who experiences this most? Which persona or segment?\n"
+            "- Desired outcome: What would success look like? If solved, what changes?\n\n"
+            "ABSOLUTE RULES:\n"
+            "1. Ask ONLY questions. Do NOT synthesize a problem statement.\n"
+            "2. Do NOT do JTBD analysis or any other phase.\n"
+            "3. End your response with: 📍 CHECKPOINT 1\n"
+            "4. Then stop. The user will answer your questions or ask clarifying questions."
+        ),
+    },
+    2: {
+        "instruction": (
+            "You are at CHECKPOINT 2: Problem Elicitation — Synthesize Problem Statement.\n\n"
+            "The user has been discussing their problem with you. "
+            "Your ONLY task is to synthesize a confirmed problem statement in this exact format:\n\n"
+            "> **[User type]** struggles to **[achieve goal]** because **[obstacle]**, which leads to **[negative consequence]**.\n\n"
+            "After presenting the problem statement, ask:\n"
+            "\"Does this accurately capture the problem? What should I adjust?\"\n\n"
+            "If the user asks clarifying questions or requests changes, address them. "
+            "Stay in this checkpoint until they confirm the problem statement.\n\n"
+            "ABSOLUTE RULES:\n"
+            "1. Present ONLY the synthesized problem statement (or address user feedback).\n"
+            "2. Do NOT proceed to JTBD analysis or any other phase.\n"
+            "3. End your response with: 📍 CHECKPOINT 2\n"
+            "4. Then stop. The user will confirm, edit, or ask questions."
+        ),
+    },
+    3: {
+        "instruction": (
+            "You are at CHECKPOINT 3: JTBD Analysis.\n\n"
+            "The user has confirmed the problem statement. "
+            "Your ONLY task is to perform Jobs-to-be-Done (JTBD) analysis.\n\n"
+            "1. Identify the core functional job — the main task the user is trying to accomplish.\n"
+            "2. Identify related jobs across three dimensions:\n"
+            "   - Functional: Practical, task-oriented jobs\n"
+            "   - Emotional: How the user wants to feel\n"
+            "   - Social: How the user wants to be perceived\n"
+            "3. Formulate JTBD statements using: When I [situation], I want to [motivation], so I can [expected outcome].\n\n"
+            "For each job, document:\n"
+            "- Job statement\n"
+            "- Value of completion (why it matters)\n"
+            "- Current satisfaction (frustrated / tolerating / satisfied, or 1–5)\n"
+            "- Importance (critical / important / nice-to-have)\n\n"
+            "After presenting the JTBD analysis, ask:\n"
+            "\"Does this capture what you're trying to accomplish? What's missing or mischaracterized?\"\n\n"
+            "If the user asks clarifying questions or requests changes, address them. "
+            "Stay in this checkpoint until they validate the JTBD.\n\n"
+            "ABSOLUTE RULES:\n"
+            "1. Present ONLY the JTBD analysis (or address user feedback).\n"
+            "2. Do NOT proceed to Competitive Landscape or any other phase.\n"
+            "3. End your response with: 📍 CHECKPOINT 3\n"
+            "4. Then stop. The user will validate, edit, or ask questions."
+        ),
+    },
+    4: {
+        "instruction": (
+            "You are at CHECKPOINT 4: Competitive Landscape & Existing Solutions.\n\n"
+            "The user has validated the JTBD analysis. "
+            "Your ONLY task is to map the competitive landscape and existing solutions.\n\n"
+            "If you need more information from the user, ask 1–3 questions about:\n"
+            "- What tools, processes, or workarounds do users rely on?\n"
+            "- What specific step or limitation causes the most friction?\n"
+            "- What does this solution fail to deliver?\n"
+            "- When do users abandon it?\n\n"
+            "If the user has already provided enough detail, present a competitive gap map with:\n"
+            "- Solution: Name/tool/process\n"
+            "- Strengths: What it does well\n"
+            "- Gaps: Unmet needs or pain points\n"
+            "- Retention reason: Why users still use it\n\n"
+            "After presenting, ask for confirmation before proceeding.\n\n"
+            "If the user asks clarifying questions or requests changes, address them. "
+            "Stay in this checkpoint until they confirm.\n\n"
+            "ABSOLUTE RULES:\n"
+            "1. Present ONLY the competitive landscape analysis (or address user feedback).\n"
+            "2. Do NOT proceed to Success Metrics or any other phase.\n"
+            "3. End your response with: 📍 CHECKPOINT 4\n"
+            "4. Then stop. The user will respond with feedback or confirmation."
+        ),
+    },
+    5: {
+        "instruction": (
+            "You are at CHECKPOINT 5: Success & Satisfaction Metrics.\n\n"
+            "The user has confirmed the competitive landscape. "
+            "Your ONLY task is to define success and satisfaction metrics.\n\n"
+            "1. Elicit success signals: How would you know this problem is solved?\n"
+            "2. Categorize metrics:\n"
+            "   - Outcome: What changes in the user's life\n"
+            "   - Process: How the experience improves\n"
+            "   - Emotional: How the user feels\n"
+            "3. Capture current baselines where possible.\n\n"
+            "Present a metrics table and ask if they reflect reality.\n\n"
+            "If the user asks clarifying questions or requests changes, address them. "
+            "Stay in this checkpoint until they confirm.\n\n"
+            "ABSOLUTE RULES:\n"
+            "1. Present ONLY the success metrics (or address user feedback).\n"
+            "2. Do NOT proceed to User Journey Mapping or any other phase.\n"
+            "3. End your response with: 📍 CHECKPOINT 5\n"
+            "4. Then stop. The user will confirm or adjust."
+        ),
+    },
+    6: {
+        "instruction": (
+            "You are at CHECKPOINT 6: User Journey Mapping.\n\n"
+            "The user has confirmed the success metrics. "
+            "Your ONLY task is to create a user journey map.\n\n"
+            "Create a journey map with these columns:\n"
+            "| Stage | User Action | Touchpoint | Pain Point | Emotion | Opportunity |\n\n"
+            "Typical stages (adapt to context):\n"
+            "1. Awareness / Trigger: User realizes the need\n"
+            "2. Consideration: User explores options\n"
+            "3. Decision: User selects a solution\n"
+            "4. Execution: User performs the core job\n"
+            "5. Completion: User achieves the outcome\n"
+            "6. Follow-up: Post-job reflection or next steps\n\n"
+            "Link each stage to the relevant JTBD from Checkpoint 3.\n\n"
+            "After presenting, ask:\n"
+            "\"Does this match your users' actual experience? What stages, pain points, or opportunities are missing?\"\n\n"
+            "If the user asks clarifying questions or requests changes, address them. "
+            "Stay in this checkpoint until they confirm.\n\n"
+            "ABSOLUTE RULES:\n"
+            "1. Present ONLY the user journey map (or address user feedback).\n"
+            "2. Do NOT produce the final summary yet.\n"
+            "3. End your response with: 📍 CHECKPOINT 6\n"
+            "4. Then stop. The user will confirm or edit."
+        ),
+    },
+    7: {
+        "instruction": (
+            "You are at CHECKPOINT 7: Final Discovery Summary.\n\n"
+            "The user has confirmed the user journey map. "
+            "Your ONLY task is to produce the final structured discovery summary.\n\n"
+            "Produce this exact format:\n\n"
+            "# Product Discovery Summary\n\n"
+            "## 1. Problem Statement\n"
+            "[Confirmed problem statement]\n\n"
+            "## 2. Jobs-to-be-Done\n"
+            "### Core Job\n"
+            "- Job: [Statement]\n"
+            "- Value: [Why it matters]\n"
+            "- Satisfaction: [Current level]\n"
+            "- Importance: [Critical/Important/Nice-to-have]\n\n"
+            "### Related Jobs\n"
+            "[Repeat format]\n\n"
+            "## 3. Existing Solutions & Gaps\n"
+            "[Table]\n\n"
+            "## 4. Success Metrics\n"
+            "[Table]\n\n"
+            "## 5. User Journey Map\n"
+            "[Table]\n\n"
+            "ABSOLUTE RULES:\n"
+            "1. Produce ONLY the final summary.\n"
+            "2. Do NOT ask for further confirmation.\n"
+            "3. End your response with: 📍 CHECKPOINT 7 — Discovery Complete"
+        ),
+    },
+}
+
 # ── Helpers ────────────────────────────────────────────────────────────────
 
 def detect_phase(text: str, skill: str = "discovery") -> int:
     """Auto-detect which phase a message belongs to."""
     phases = DISCOVERY_PHASES if skill == "discovery" else SOLUTION_PHASES
     text_lower = text.lower()
-    for phase in reversed(phases):  # Check later phases first (more specific)
+    for phase in reversed(phases):
         for kw in phase["keywords"]:
             if kw in text_lower:
                 return phase["id"]
-    return 1  # Default to Phase 1
+    return 1
 
 
-def build_discovery_system_prompt() -> str:
+def user_wants_to_advance(text: str) -> bool:
+    """Detect if the user's message explicitly signals they want to proceed to the next checkpoint."""
+    text_lower = text.lower().strip()
+    advance_signals = [
+        "proceed", "next", "continue", "move on", "move forward", "go ahead",
+        "looks good", "looks great", "looks accurate", "confirmed", "confirm",
+        "yes, that", "yes that", "yes accurate", "yes proceed", "yes continue",
+        "yes next", "yes move", "validated", "approved", "accept", "agreed",
+        "that captures it", "that is accurate", "that is correct", "that works",
+        "satisfied", "happy with", "good to go", "let's move", "lets move",
+    ]
+    return any(sig in text_lower for sig in advance_signals)
+
+
+def build_discovery_system_prompt(checkpoint: int = None) -> str:
     """Build the discovery skill-triggering system prompt."""
-    return (
-        "You are a Product Discovery Manager. You follow the structured discovery workflow "
+    base = (
+        "You are a Product Discovery Manager following the structured discovery workflow "
         "defined in the product-discovery-manager skill. Ground all your work in the project's "
         "reference materials: read _context/ for core product model principles (Cagan's INSPIRED, "
         "Product Model First Principles) and Discovery/_context/ for JTBD Framework and User Journey "
         "Mapping guidance.\n\n"
-        "Your goal is to guide the user through 5 phases:\n"
-        "1. Problem Elicitation - validate the problem statement\n"
-        "2. Jobs-to-be-Done Analysis - identify core and related jobs\n"
-        "3. Competitive Landscape - map existing solutions and gaps\n"
-        "4. Success Metrics - define outcome, process, and emotional metrics\n"
-        "5. User Journey Mapping - visualize the end-to-end experience\n\n"
-        "Ask probing questions, confirm assumptions before finalizing, and iterate rather than "
-        "perfecting. Use the user's own language in JTBD and problem statements.\n\n"
-        "At the end of discovery, produce a structured summary with: Problem Statement, "
-        "Jobs-to-be-Done list, Existing Solutions & Gaps table, Success Metrics table, and "
-        "User Journey Map table."
+        "Use the user's own language in JTBD and problem statements. "
+        "Iterate rather than perfecting. Present drafts for validation. "
+        "If the user asks questions or requests changes, address them collaboratively. "
+        "Never rush to the next phase without the user's explicit confirmation.\n\n"
+    )
+
+    if checkpoint and checkpoint in DISCOVERY_CHECKPOINTS:
+        cp = DISCOVERY_CHECKPOINTS[checkpoint]
+        return base + cp["instruction"]
+
+    return (
+        base +
+        "This is a COLLABORATIVE, CHECKPOINT-DRIVEN workflow with 7 checkpoints. "
+        "At each checkpoint, output the content for that phase and end your response. "
+        "Do not proceed to the next phase within the same response. "
+        "The user will reply with their input or confirmation, and you will continue in the next response."
     )
 
 
@@ -140,13 +333,16 @@ def build_solution_system_prompt() -> str:
     )
 
 
-def run_kimi(prompt: str, skill: str = "discovery", work_dir: str = DEFAULT_WORK_DIR, timeout: int = DEFAULT_TIMEOUT) -> str:
+def run_kimi(prompt: str, skill: str = "discovery", work_dir: str = DEFAULT_WORK_DIR,
+             timeout: int = DEFAULT_TIMEOUT, system_prompt: str = None) -> str:
     """Invoke Kimi CLI in non-interactive print mode."""
-    if skill == "solution":
-        system_prompt = build_solution_system_prompt()
-    else:
-        system_prompt = build_discovery_system_prompt()
-    full_prompt = f"{system_prompt}\n\n---\n\nUser message:\n{prompt}"
+    if system_prompt is None:
+        if skill == "solution":
+            system_prompt = build_solution_system_prompt()
+        else:
+            system_prompt = build_discovery_system_prompt()
+
+    full_prompt = f"{system_prompt}\n\n---\n\nConversation history:\n{prompt}"
 
     cmd = [
         KIMI_BIN,
@@ -205,6 +401,7 @@ def api_chat():
                 "created_at": datetime.now().isoformat(),
                 "messages": [],
                 "current_phase": 1,
+                "current_checkpoint": 1,
                 "skill": skill,
             }
         session = sessions[session_id]
@@ -220,6 +417,25 @@ def api_chat():
         "phase": user_phase,
     })
 
+    # For discovery skill: manage checkpoint progression
+    checkpoint = session.get("current_checkpoint", 1)
+    if skill == "discovery":
+        # Only auto-advance if user EXPLICITLY signals they want to proceed
+        # AND the last assistant message was a checkpoint marker
+        if user_wants_to_advance(message) and len(session["messages"]) >= 2:
+            assistant_msgs = [m for m in session["messages"] if m["role"] == "assistant"]
+            if assistant_msgs:
+                last_assistant = assistant_msgs[-1]["content"].lower()
+                cp_marker = f"checkpoint {checkpoint}"
+                if cp_marker in last_assistant and checkpoint < 7:
+                    checkpoint += 1
+                    session["current_checkpoint"] = checkpoint
+
+    # Build system prompt
+    system_prompt = None
+    if skill == "discovery":
+        system_prompt = build_discovery_system_prompt(checkpoint)
+
     # Build contextual prompt from conversation history
     history = "\n\n".join(
         f"{'User' if m['role'] == 'user' else 'Assistant'}: {m['content']}"
@@ -227,7 +443,7 @@ def api_chat():
     )
 
     # Run Kimi
-    assistant_reply = run_kimi(history, skill=skill)
+    assistant_reply = run_kimi(history, skill=skill, system_prompt=system_prompt)
     assistant_phase = detect_phase(assistant_reply, skill)
     current_phase = max(user_phase, assistant_phase, session["current_phase"])
     session["current_phase"] = current_phase
@@ -244,8 +460,78 @@ def api_chat():
         "response": assistant_reply,
         "session_id": session_id,
         "current_phase": current_phase,
+        "current_checkpoint": checkpoint,
         "phase_name": next((p["name"] for p in phases if p["id"] == current_phase), "Unknown"),
         "skill": skill,
+        "can_advance": skill == "discovery" and checkpoint < 7 and f"📍 CHECKPOINT {checkpoint}" in assistant_reply,
+    })
+
+
+@app.route("/api/advance-checkpoint", methods=["POST"])
+def advance_checkpoint():
+    """Explicitly advance to the next discovery checkpoint and get Kimi's response."""
+    data = request.get_json(force=True) or {}
+    session_id = data.get("session_id")
+
+    if not session_id:
+        return jsonify({"error": "session_id is required"}), 400
+
+    with sessions_lock:
+        session = sessions.get(session_id)
+    if not session:
+        return jsonify({"error": "Session not found"}), 404
+
+    if session.get("skill") != "discovery":
+        return jsonify({"error": "Checkpoint advancement only for discovery skill"}), 400
+
+    current_cp = session.get("current_checkpoint", 1)
+    if current_cp >= 7:
+        return jsonify({"error": "Already at final checkpoint"}), 400
+
+    next_cp = current_cp + 1
+    session["current_checkpoint"] = next_cp
+
+    # Trigger messages to tell Kimi what to do at the new checkpoint
+    trigger_messages = {
+        2: "The user has confirmed their answers and wants to proceed. Please synthesize a confirmed problem statement.",
+        3: "The user has confirmed the problem statement and wants to proceed. Please perform JTBD analysis.",
+        4: "The user has validated the JTBD analysis and wants to proceed. Please map the competitive landscape.",
+        5: "The user has confirmed the competitive landscape and wants to proceed. Please define success metrics.",
+        6: "The user has confirmed the success metrics and wants to proceed. Please create a user journey map.",
+        7: "The user has confirmed the user journey map and wants to proceed. Please produce the final discovery summary.",
+    }
+    trigger = trigger_messages.get(next_cp, "Please proceed to the next checkpoint.")
+
+    # Build history including the trigger as a synthetic user message
+    history = "\n\n".join(
+        f"{'User' if m['role'] == 'user' else 'Assistant'}: {m['content']}"
+        for m in session["messages"][-6:]
+    )
+    history += f"\n\nUser: {trigger}"
+
+    system_prompt = build_discovery_system_prompt(next_cp)
+    assistant_reply = run_kimi(history, skill="discovery", system_prompt=system_prompt)
+
+    assistant_phase = detect_phase(assistant_reply, "discovery")
+    current_phase = max(assistant_phase, session["current_phase"])
+    session["current_phase"] = current_phase
+
+    # Store assistant message
+    session["messages"].append({
+        "role": "assistant",
+        "content": assistant_reply,
+        "timestamp": datetime.now().isoformat(),
+        "phase": current_phase,
+    })
+
+    return jsonify({
+        "response": assistant_reply,
+        "session_id": session_id,
+        "current_phase": current_phase,
+        "current_checkpoint": next_cp,
+        "phase_name": next((p["name"] for p in DISCOVERY_PHASES if p["id"] == current_phase), "Unknown"),
+        "skill": "discovery",
+        "can_advance": next_cp < 7 and f"📍 CHECKPOINT {next_cp}" in assistant_reply,
     })
 
 
@@ -267,6 +553,7 @@ def list_sessions():
                 "created_at": s["created_at"],
                 "message_count": len(s["messages"]),
                 "current_phase": s["current_phase"],
+                "current_checkpoint": s.get("current_checkpoint", 1),
                 "phase_name": next((p["name"] for p in (DISCOVERY_PHASES if s.get("skill") == "discovery" else SOLUTION_PHASES) if p["id"] == s["current_phase"]), "Unknown"),
                 "skill": s.get("skill", "discovery"),
             }
@@ -282,16 +569,18 @@ def export_session(session_id):
     if not session:
         return jsonify({"error": "Session not found"}), 404
 
-    # Build a markdown export from the conversation
+    skill = session.get("skill", "discovery")
+    phases = DISCOVERY_PHASES if skill == "discovery" else SOLUTION_PHASES
+
     lines = ["# Product Discovery Session\n"]
     lines.append(f"**Session ID:** {session['id']}  ")
     lines.append(f"**Created:** {session['created_at']}  ")
-    lines.append(f"**Current Phase:** {next((p['name'] for p in PHASES if p['id'] == session['current_phase']), 'Unknown')}\n")
+    lines.append(f"**Current Phase:** {next((p['name'] for p in phases if p['id'] == session['current_phase']), 'Unknown')}\n")
     lines.append("---\n")
 
     for msg in session["messages"]:
         role = "🧑 User" if msg["role"] == "user" else "🤖 Assistant"
-        phase = next((p["name"] for p in PHASES if p["id"] == msg.get("phase", 1)), "")
+        phase = next((p["name"] for p in phases if p["id"] == msg.get("phase", 1)), "")
         lines.append(f"## {role} (Phase: {phase})\n")
         lines.append(f"{msg['content']}\n")
 
@@ -316,7 +605,6 @@ def delete_session(session_id):
 
 @app.route("/api/save-discovery", methods=["POST"])
 def save_discovery():
-    """Save the current session as structured discovery files."""
     data = request.get_json(force=True) or {}
     session_id = data.get("session_id")
     problem_name = (data.get("problem_name") or "untitled-discovery").strip()
@@ -330,17 +618,15 @@ def save_discovery():
         return jsonify({"error": "Session not found"}), 404
 
     try:
-        # Create discovery folder
         folder_path = create_discovery_folder(problem_name)
         folder_name = os.path.basename(folder_path)
 
-        # Extract phase content from messages and save as separate files
         skill = session.get("skill", "discovery")
         phases = DISCOVERY_PHASES if skill == "discovery" else SOLUTION_PHASES
         save_fn = save_discovery_phase if skill == "discovery" else save_solution_phase
         save_summary_fn = save_discovery_summary if skill == "discovery" else save_solution_summary
         label = "Product Discovery" if skill == "discovery" else "Solution Architecture"
-        dir_label = "Discovery/discoveries" if skill == "discovery" else "Solutions/solutions"
+        dir_label = "Discovery/_result" if skill == "discovery" else "Solutions/_result"
 
         phase_content = {p["id"]: [] for p in phases}
         current_summary_lines = [f"# {label} Summary\n"]
@@ -350,7 +636,6 @@ def save_discovery():
             if msg["role"] == "assistant":
                 phase_content[phase].append(msg["content"])
 
-        # Save each phase
         for phase in phases:
             pid = phase["id"]
             if phase_content[pid]:
@@ -359,7 +644,6 @@ def save_discovery():
                 current_summary_lines.append(f"\n## {phase['name']}\n")
                 current_summary_lines.append("\n\n".join(phase_content[pid]))
 
-        # Save summary
         summary_content = "\n".join(current_summary_lines)
         save_summary_fn(folder_path, summary_content)
 
@@ -376,8 +660,6 @@ def save_discovery():
 
 @app.route("/api/generate-report/<folder>", methods=["POST"])
 def generate_discovery_report(folder):
-    """Generate an HTML report for a discovery folder."""
-    # Prevent path traversal
     folder = os.path.basename(folder)
     folder_path = os.path.join(DISCOVERIES_DIR, folder)
     if not os.path.exists(folder_path):
@@ -388,7 +670,7 @@ def generate_discovery_report(folder):
         return jsonify({
             "success": True,
             "report_path": report_path,
-            "report_url": f"/Discovery/discoveries/{folder}/index.html",
+            "report_url": f"/Discovery/_result/{folder}/index.html",
             "message": "Report generated successfully",
         })
     except Exception as e:
@@ -397,19 +679,16 @@ def generate_discovery_report(folder):
 
 @app.route("/api/discoveries", methods=["GET"])
 def get_discoveries():
-    """List all discovery folders."""
     return jsonify(list_discovery_folders())
 
 
 @app.route("/api/solutions", methods=["GET"])
 def get_solutions():
-    """List all solution folders."""
     return jsonify(list_solution_folders())
 
 
 @app.route("/api/save-solution", methods=["POST"])
 def save_solution():
-    """Save the current session as structured solution files."""
     data = request.get_json(force=True) or {}
     session_id = data.get("session_id")
     problem_name = (data.get("problem_name") or "untitled-solution").strip()
@@ -453,7 +732,7 @@ def save_solution():
             "success": True,
             "folder": folder_name,
             "folder_path": folder_path,
-            "message": f"Solution saved to Solutions/solutions/{folder_name}/",
+            "message": f"Solution saved to Solutions/_result/{folder_name}/",
         })
 
     except Exception as e:
@@ -462,7 +741,6 @@ def save_solution():
 
 @app.route("/api/generate-solution-report/<folder>", methods=["POST"])
 def generate_solution_report(folder):
-    """Generate an HTML report for a solution folder."""
     folder = os.path.basename(folder)
     folder_path = os.path.join(SOLUTIONS_DIR, folder)
     if not os.path.exists(folder_path):
@@ -473,26 +751,23 @@ def generate_solution_report(folder):
         return jsonify({
             "success": True,
             "report_path": report_path,
-            "report_url": f"/Solutions/solutions/{folder}/index.html",
+            "report_url": f"/Solutions/_result/{folder}/index.html",
             "message": "Report generated successfully",
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/Solutions/solutions/<path:filename>")
+@app.route("/Solutions/_result/<path:filename>")
 def serve_solution(filename):
-    """Serve solution report files."""
     safe_path = os.path.normpath(os.path.join(SOLUTIONS_DIR, filename))
     if not safe_path.startswith(os.path.normpath(SOLUTIONS_DIR)):
         return jsonify({"error": "Invalid path"}), 403
     return send_from_directory(SOLUTIONS_DIR, filename)
 
 
-@app.route("/Discovery/discoveries/<path:filename>")
+@app.route("/Discovery/_result/<path:filename>")
 def serve_discovery(filename):
-    """Serve discovery report files."""
-    # Prevent path traversal by ensuring the resolved path stays within DISCOVERIES_DIR
     safe_path = os.path.normpath(os.path.join(DISCOVERIES_DIR, filename))
     if not safe_path.startswith(os.path.normpath(DISCOVERIES_DIR)):
         return jsonify({"error": "Invalid path"}), 403
@@ -502,8 +777,6 @@ def serve_discovery(filename):
 # ── Main ───────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    import subprocess  # noqa: re-import at top-level for module clarity
-
     print(f"=" * 60)
     print("Product Discovery Manager + Solution Architect - Web Interface")
     print(f"Project root: {PROJECT_ROOT}")

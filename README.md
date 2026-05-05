@@ -97,7 +97,7 @@ Use the dropdown in the top-right corner to switch between **🔍 Discovery** an
 
 1. **Describe your problem** — Type a customer problem and click **Start Discovery**
 2. **Chat through 5 phases** — The Product Discovery Manager guides you with probing questions
-3. **Save** (💾) — Persists outputs to `Discovery/discoveries/yyyymmdd-problem-name/`
+3. **Save** (💾) — Persists outputs to `Discovery/_result/yyyymmdd-problem-name/`
 4. **Report** (📄) — Generates a dark-mode HTML report with tables, badges, and reading time
 5. **Browse** (📂) — View all past discoveries
 
@@ -105,7 +105,7 @@ Use the dropdown in the top-right corner to switch between **🔍 Discovery** an
 
 1. **Share discovery output** — Paste your discovery summary or describe the problem space
 2. **Chat through 8 phases** — The Solution Architect explores barriers, opportunities, and sizing
-3. **Save** (💾) — Persists outputs to `Solutions/solutions/yyyymmdd-problem-name/`
+3. **Save** (💾) — Persists outputs to `Solutions/_result/yyyymmdd-problem-name/`
 4. **Report** (📄) — Generates the same HTML report format for solution artifacts
 5. **Browse** (📂) — View all past solution reports
 
@@ -182,7 +182,7 @@ The `_context/` folders contain the frameworks that power both skills:
         └── js/app.js
 ```
 
-> **Privacy note:** The `Discovery/discoveries/` and `Solutions/solutions/` folders are gitignored. When someone forks this repo, they get a clean workspace with only the reference materials and skill definitions — none of your personal work.
+> **Privacy note:** The `Discovery/_result/` and `Solutions/_result/` folders are gitignored. When someone forks this repo, they get a clean workspace with only the reference materials and skill definitions — none of your personal work.
 
 ---
 
@@ -190,7 +190,7 @@ The `_context/` folders contain the frameworks that power both skills:
 
 - **No API keys committed** — The Kimi CLI path defaults to the standard macOS install location. Override with the `KIMI_BIN` environment variable if needed.
 - **Everything runs locally** — Your conversations and reports never leave your machine.
-- **Personal work is gitignored** — Discovery outputs (`Discovery/discoveries/`) and solutioning results (`Solutions/solutions/`) are excluded from version control by default.
+- **Personal work is gitignored** — Discovery outputs (`Discovery/_result/`) and solutioning results (`Solutions/_result/`) are excluded from version control by default.
 - **No cloud services** — No databases, no third-party APIs, no analytics.
 
 ---

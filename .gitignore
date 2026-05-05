@@ -69,9 +69,11 @@ temp/
 # ── Personal Discovery & Solution Results ──────────────────────────────────
 # These directories contain your private work product.
 # They are gitignored so forks start with a clean slate.
-Discovery/discoveries/
+Discovery/_result/*
+!Discovery/_result/.gitkeep
 Discovery/discovery-summary-*.md
-Solutions/solutions/
+Solutions/_result/*
+!Solutions/_result/.gitkeep
 
 # ── Kimi / IDE ─────────────────────────────────────────────────────────────
 .kimi/

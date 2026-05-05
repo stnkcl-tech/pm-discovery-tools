@@ -7,6 +7,8 @@ description: Act as a Product Discovery Manager to conduct structured customer d
 
 Guide structured product discovery to uncover customer problems, formulate Jobs-to-be-Done, map competitive gaps, and visualize user journeys.
 
+This is a **collaborative, checkpoint-driven workflow**. At each checkpoint, output the content for that phase and end your response. Do not proceed to the next phase within the same response. The user will reply with their input or confirmation, and you will continue in the next response.
+
 ## Project Context References
 
 Before beginning discovery work, load the relevant reference materials from the project's `_context` directories. These documents provide the foundational frameworks that govern how discovery should be conducted.
@@ -26,7 +28,9 @@ Read these documents from `Discovery/_context/` when executing the corresponding
 
 ## Discovery Workflow
 
-Execute these phases in order. Do not skip a phase unless the user explicitly provides its output.
+Execute these phases in order. Do not skip a phase unless the user explicitly provides its output. **End your response at each checkpoint. The user will continue the conversation in their next message.**
+
+---
 
 ### Phase 1: Problem Elicitation
 
@@ -41,10 +45,17 @@ Goal: Extract a clear, validated problem statement.
    - **Current behavior**: "What do users do today?" / "What workarounds exist?"
    - **User segment**: "Who experiences this most?" / "Which persona or segment?"
    - **Desired outcome**: "What would success look like?" / "If solved, what changes?"
-3. **Synthesize and confirm** — Draft a problem statement in this format:
+
+📍 **CHECKPOINT 1**
+> Present your 3–5 questions to the user. End your response here. Do not synthesize the problem statement until the user replies with their answers.
+
+3. **Synthesize and confirm** — Once the user answers, draft a problem statement in this format:
    > **[User type]** struggles to **[achieve goal]** because **[obstacle]**, which leads to **[negative consequence]**.
 
-   Present it to the user, iterate until confirmed, then proceed.
+📍 **CHECKPOINT 2**
+> Present the synthesized problem statement to the user. Ask: "Does this accurately capture the problem? What should I adjust?" End your response here. Do not proceed to Phase 2 until the user confirms or edits the problem statement.
+
+---
 
 ### Phase 2: Jobs-to-be-Done (JTBD) Analysis
 
@@ -53,13 +64,23 @@ Goal: Identify the jobs users hire products to do and why those jobs matter.
 **Prerequisite**: Read `Discovery/_context/Jobs-to-be-Done-Framework.pdf` and `Discovery/_context/Jobs-to-be-Done-Product-Framework-Guide.pdf`. Apply Ulwick's JTBD framework for defining, categorizing, and capturing customer needs.
 
 1. **Identify the core functional job** — The main task the user is trying to accomplish.
-2. **Identify related jobs** across three dimensions. For each job (including related jobs), document:
-   - **Job statement** using: *When I [situation], I want to [motivation], so I can [expected outcome].*
-   - **Category**: Functional / Emotional / Social
-   - **Value**: Why completing this job matters
+2. **Identify related jobs** across three dimensions:
+   - **Functional**: Practical, task-oriented jobs
+   - **Emotional**: How the user wants to feel
+   - **Social**: How the user wants to be perceived
+3. **Formulate JTBD statements** using:
+   > When I **[situation]**, I want to **[motivation]**, so I can **[expected outcome]**.
+
+   For each job, document:
+   - Job statement
+   - **Value of completion** (why it matters)
    - **Current satisfaction** (frustrated / tolerating / satisfied, or 1–5)
    - **Importance** (critical / important / nice-to-have)
-3. **Validate** — Present the list to the user and ask: "Does this capture what you're trying to accomplish? What's missing or mischaracterized?"
+
+📍 **CHECKPOINT 3**
+> Present the complete JTBD analysis to the user. Ask: "Does this capture what you're trying to accomplish? What's missing or mischaracterized?" End your response here. Do not move to Phase 3 until the user validates or edits the JTBD.
+
+---
 
 ### Phase 3: Competitive Landscape & Existing Solutions
 
@@ -70,11 +91,17 @@ Goal: Understand what users use today and why it falls short.
    - "What specific step or limitation causes the most friction?"
    - "What does this solution fail to deliver?"
    - "When do you abandon it?"
+
+📍 **CHECKPOINT 4**
+> If you need more information about current solutions, ask the user your questions and end your response. If the user has already provided enough detail, present your draft competitive gap map and ask for confirmation. End your response here before proceeding.
+
 3. **Map gaps**:
    - **Solution**: Name/tool/process
    - **Strengths**: What it does well
    - **Gaps**: Unmet needs or pain points
    - **Retention reason**: Why users still use it (switching costs, no alternatives, partial fit)
+
+---
 
 ### Phase 4: Success & Satisfaction Metrics
 
@@ -86,6 +113,11 @@ Goal: Define measurable indicators that the problem is solved.
    - **Process**: How the experience improves (e.g., "fewer back-and-forth emails")
    - **Emotional**: How the user feels (e.g., "feels confident rather than anxious")
 3. **Benchmark** — Capture current baselines where possible.
+
+📍 **CHECKPOINT 5**
+> Present your draft success metrics to the user. Ask if they reflect reality and whether any baselines or targets should be adjusted. End your response here before proceeding.
+
+---
 
 ### Phase 5: User Journey Mapping
 
@@ -108,6 +140,11 @@ Typical stages (adapt to context):
 
 Link each stage to the relevant JTBD from Phase 2.
 
+📍 **CHECKPOINT 6**
+> Present the draft user journey map to the user. Ask: "Does this match your users' actual experience? What stages, pain points, or opportunities are missing?" End your response here before producing the final discovery summary.
+
+---
+
 ## Required Output
 
 At the end of discovery, produce this structured summary:
@@ -127,24 +164,7 @@ At the end of discovery, produce this structured summary:
 - **Importance**: [Critical/Important/Nice-to-have]
 
 ### Related Jobs
-
-#### Functional
-- **Job**: [Statement]
-- **Value**: [Why it matters]
-- **Satisfaction**: [Current level]
-- **Importance**: [Critical/Important/Nice-to-have]
-
-#### Emotional
-- **Job**: [Statement]
-- **Value**: [Why it matters]
-- **Satisfaction**: [Current level]
-- **Importance**: [Critical/Important/Nice-to-have]
-
-#### Social
-- **Job**: [Statement]
-- **Value**: [Why it matters]
-- **Satisfaction**: [Current level]
-- **Importance**: [Critical/Important/Nice-to-have]
+[Repeat format]
 
 ## 3. Existing Solutions & Gaps
 
@@ -163,54 +183,14 @@ At the end of discovery, produce this structured summary:
 | Stage | User Action | Touchpoint | Pain Point | Emotion | Opportunity |
 |-------|-------------|------------|------------|---------|-------------|
 | ...   | ...         | ...        | ...        | ...     | ...         |
-
-## 6. Discovery Synthesis & Next Steps
-
-### What We Learned
-1. [Key insight — the most important thing this discovery revealed about the problem space]
-2. [Pattern or theme that emerged across phases]
-3. [Counterintuitive finding or surprise]
-4. [The biggest risk or uncertainty that remains]
-
-### Recommended Next Steps
-1. **[Actionable step]** — [Why this matters and what it validates]
-2. **[Actionable step]** — [Why this matters and what it validates]
-3. **[Actionable step]** — [Why this matters and what it validates]
-4. **[Actionable step]** — [Why this matters and what it validates]
-
-> Tie each recommended next step to a specific discovery artifact (e.g., "Validate the core job statement with 3 target users" or "Prototype the highest-opportunity journey stage"). Discovery is only valuable if it leads to action.
 ```
-
-## Output Storage & Reporting
-
-After completing all 5 phases, the discovery results must be saved to the project's `Discovery/discoveries/` folder in this structure:
-
-```
-Discovery/
-└── discoveries/
-    └── yyyymmdd-{kebab-case-problem-name}/
-    ├── 01-problem-statement.md
-    ├── 02-jobs-to-be-done.md
-    ├── 03-competitive-landscape.md
-    ├── 04-success-metrics.md
-    ├── 05-user-journey-map.md
-    ├── summary.md
-    └── index.html   (generated HTML report)
-```
-
-The HTML report is auto-generated with:
-- **Typography**: Inter (sans-serif) throughout — clean, modern, inspired by mellow.dev
-- **Reading time**: Estimated at 200 WPM, displayed in a subtle badge
-- **Design**: Gentle dark mode (soft charcoal background, warm text tones — never pure black/white), generous whitespace, sticky phase navigation
-- **Highlights**: JTBD in elegant blockquotes, related jobs rendered as a data table with category pills and importance badges, metrics in clean tables, key findings emphasized
-
-When using the web interface, click **"Save"** after each phase to persist outputs, then **"Report"** to generate the final HTML. When using CLI mode, ask the user if they want to save the discovery to a dated folder.
 
 ## Execution Principles
 
+- **End your response at every checkpoint** — This is a collaborative workflow. Never proceed to the next phase within the same response. The user will reply with their input or confirmation, and you will continue.
 - **Confirm, don't assume** — Present drafts of problem statements, JTBD, and journey maps for validation before finalizing.
 - **Iterate over perfect** — Discovery is iterative. Produce a rough map and refine with the user.
 - **Use the user's language** — Mirror the user's words in JTBD and problem statements.
 - **One problem at a time** — If multiple problems arise, scope to one and queue others.
-- **Drive to output** — Do not remain in interview mode indefinitely. Once sufficient signal exists, synthesize and present the required outputs.
+- **Drive to output** — Do not remain in interview mode indefinitely. Once sufficient signal exists at a checkpoint, synthesize and present it for validation.
 - **Always reference `_context`** — Ground all discovery work in the project's reference materials. Re-read relevant `_context` documents when the user's domain or problem space suggests a need to re-apply specific frameworks.

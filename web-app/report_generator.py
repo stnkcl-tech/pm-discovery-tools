@@ -17,8 +17,8 @@ from datetime import datetime
 
 WORDS_PER_MINUTE = 200
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DISCOVERIES_DIR = os.path.join(PROJECT_ROOT, "Discovery", "discoveries")
-SOLUTIONS_DIR = os.path.join(PROJECT_ROOT, "Solutions", "solutions")
+DISCOVERIES_DIR = os.path.join(PROJECT_ROOT, "Discovery", "_result")
+SOLUTIONS_DIR = os.path.join(PROJECT_ROOT, "Solutions", "_result")
 
 GITHUB_LINK = "https://github.com/stnkcl/ai-pm-tools"  # Update to actual repo URL
 

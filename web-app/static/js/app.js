@@ -9,6 +9,7 @@ let currentSessionId = null;
 let isLoading = false;
 let sessions = [];
 let currentSkill = "discovery"; // "discovery" | "solution"
+let currentCheckpoint = 1;
 
 const PHASES_DISCOVERY = [
     { id: 1, name: "Problem Elicitation", desc: "Validate the problem statement" },
@@ -17,6 +18,16 @@ const PHASES_DISCOVERY = [
     { id: 4, name: "Success Metrics", desc: "Define measurable outcomes" },
     { id: 5, name: "User Journey Mapping", desc: "Visualize the experience" },
 ];
+
+const CHECKPOINT_NAMES = {
+    1: "Ask Probing Questions",
+    2: "Synthesize Problem Statement",
+    3: "JTBD Analysis",
+    4: "Competitive Landscape",
+    5: "Success Metrics",
+    6: "User Journey Mapping",
+    7: "Discovery Summary",
+};
 
 const PHASES_SOLUTION = [
     { id: 1, name: "Discovery Input", desc: "Retrieve and synthesize discovery findings" },
@@ -41,14 +52,14 @@ const SKILL_CONFIG = {
         landingDesc: "Describe your customer problem or product idea. The Product Discovery Manager will guide you through a structured discovery process.",
         startBtnText: "Start Discovery",
         senderName: "Product Discovery Manager",
-        welcomeMsg: `<p>Hello! I'm your Product Discovery Manager. I'll guide you through a structured discovery process grounded in Cagan's product model principles and the Jobs-to-be-Done framework.</p><p>Let's start by understanding your problem. Please describe the customer problem or need you're exploring, and I'll begin Phase 1: Problem Elicitation.</p>`,
+        welcomeMsg: `<p>Hello! I'm your Product Discovery Manager. I'll guide you through a <strong>collaborative, checkpoint-driven discovery process</strong> grounded in Cagan's product model principles and the Jobs-to-be-Done framework.</p><p>Here's how it works: I'll stop at each checkpoint to ask for your input or confirmation before moving forward. We'll work through 5 phases together — Problem Elicitation → JTBD Analysis → Competitive Landscape → Success Metrics → User Journey Mapping.</p><p>Let's start! Please describe the customer problem or need you're exploring, and I'll begin Phase 1.</p>`,
         saveEndpoint: "/api/save-discovery",
         listEndpoint: "/api/discoveries",
         reportEndpointPrefix: "/api/generate-report",
-        reportUrlPrefix: "/Discovery/discoveries",
+        reportUrlPrefix: "/Discovery/_result",
         browseTitle: "📂 Discovery Reports",
         emptyMsg: "No discoveries yet. Start a discovery session and save it!",
-        hint: "Kimi triggers the product-discovery-manager skill automatically",
+        hint: "Collaborative workflow: Kimi stops at each checkpoint for your input before continuing",
     },
     solution: {
         phases: PHASES_SOLUTION,
@@ -65,7 +76,7 @@ const SKILL_CONFIG = {
         saveEndpoint: "/api/save-solution",
         listEndpoint: "/api/solutions",
         reportEndpointPrefix: "/api/generate-solution-report",
-        reportUrlPrefix: "/Solutions/solutions",
+        reportUrlPrefix: "/Solutions/_result",
         browseTitle: "📂 Solution Reports",
         emptyMsg: "No solutions yet. Start a solution session and save it!",
         hint: "Kimi triggers the solution-architect skill automatically based on your messages",
@@ -209,8 +220,9 @@ function getCurrentPhases() {
     return SKILL_CONFIG[currentSkill].phases;
 }
 
-function updatePhaseTracker(phaseId) {
-    currentPhaseBadge.textContent = `Phase ${phaseId}`;
+function updatePhaseTracker(phaseId, checkpoint = null) {
+    const cp = checkpoint || currentCheckpoint || 1;
+    currentPhaseBadge.textContent = `Phase ${phaseId} · Checkpoint ${cp}`;
 
     document.querySelectorAll('.phase-item').forEach(item => {
         const itemPhase = parseInt(item.dataset.phase);
@@ -272,25 +284,92 @@ function switchSkill(skill) {
     loadSessions();
 }
 
-function addMessage(role, content, phase = 1) {
+function highlightCheckpoints(html) {
+    // Wrap checkpoint indicator lines with special styling
+    html = html.replace(
+        /(<p>)?📍\s*<strong>CHECKPOINT\s*\d+[^<]*<\/strong>[^<]*([^<]*)(<\/p>)?/gi,
+        '<div class="checkpoint-line">📍 <strong>CHECKPOINT</strong> — Waiting for your input before continuing...</div>'
+    );
+    return html;
+}
+
+function hasCheckpointMarker(content) {
+    return /📍\s*CHECKPOINT\s*\d+/i.test(content);
+}
+
+function getCheckpointNumber(content) {
+    const match = content.match(/📍\s*CHECKPOINT\s*(\d+)/i);
+    return match ? parseInt(match[1]) : null;
+}
+
+function addMessage(role, content, phase = 1, canAdvance = false) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}`;
     messageDiv.dataset.phase = phase;
 
     const avatar = role === 'user' ? '🧑' : '🤖';
     const sender = role === 'user' ? 'You' : SKILL_CONFIG[currentSkill].senderName;
-    const htmlContent = markdownToHtml(content);
+    let htmlContent = markdownToHtml(content);
+    htmlContent = highlightCheckpoints(htmlContent);
+
+    let proceedButtonHtml = '';
+    if (role === 'assistant' && canAdvance && currentSkill === 'discovery') {
+        const cpNum = getCheckpointNumber(content);
+        const nextCpName = cpNum && cpNum < 7 ? CHECKPOINT_NAMES[cpNum + 1] : null;
+        if (nextCpName) {
+            proceedButtonHtml = `
+                <div class="checkpoint-actions">
+                    <button class="btn btn-proceed" onclick="proceedToNextCheckpoint()">
+                        ✅ Confirm & Proceed to ${nextCpName}
+                    </button>
+                </div>
+            `;
+        }
+    }
 
     messageDiv.innerHTML = `
         <div class="message-avatar">${avatar}</div>
         <div class="message-content">
             <div class="message-sender">${sender}</div>
             <div class="message-text">${htmlContent}</div>
+            ${proceedButtonHtml}
         </div>
     `;
 
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+async function proceedToNextCheckpoint() {
+    if (!currentSessionId || isLoading) return;
+
+    // Remove all proceed buttons to prevent double-clicks
+    document.querySelectorAll('.checkpoint-actions').forEach(el => el.remove());
+
+    setLoading(true);
+    try {
+        const response = await fetch('/api/advance-checkpoint', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_id: currentSessionId }),
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+            addMessage('assistant', `**Error:** ${data.error}`);
+        } else {
+            currentCheckpoint = data.current_checkpoint || 1;
+            addMessage('assistant', data.response, data.current_phase, data.can_advance);
+            updatePhaseTracker(data.current_phase, currentCheckpoint);
+            await loadSessions();
+        }
+    } catch (err) {
+        addMessage('assistant', `**Connection Error:** ${err.message}`);
+    } finally {
+        setLoading(false);
+        chatInput.focus();
+    }
 }
 
 function showChatInterface() {
@@ -310,7 +389,8 @@ function showLandingInterface() {
     problemInput.value = '';
     chatInput.value = '';
     currentSessionId = null;
-    updatePhaseTracker(1);
+    currentCheckpoint = 1;
+    updatePhaseTracker(1, 1);
 
     // Reset chat messages to welcome only
     chatMessages.innerHTML = `
@@ -347,8 +427,9 @@ async function sendMessage(message) {
             addMessage('assistant', `**Error:** ${data.error}`);
         } else {
             currentSessionId = data.session_id;
-            addMessage('assistant', data.response, data.current_phase);
-            updatePhaseTracker(data.current_phase);
+            currentCheckpoint = data.current_checkpoint || 1;
+            addMessage('assistant', data.response, data.current_phase, data.can_advance);
+            updatePhaseTracker(data.current_phase, currentCheckpoint);
             await loadSessions();
         }
     } catch (err) {
@@ -375,7 +456,8 @@ async function loadSessions() {
             const option = document.createElement('option');
             option.value = session.id;
             const date = new Date(session.created_at).toLocaleString();
-            option.textContent = `Session ${session.id} — ${session.phase_name} (${session.message_count} msgs)`;
+            const cpLabel = session.current_checkpoint ? ` · CP${session.current_checkpoint}` : '';
+            option.textContent = `Session ${session.id} — ${session.phase_name}${cpLabel} (${session.message_count} msgs)`;
             if (session.id === currentVal) option.selected = true;
             sessionSelect.appendChild(option);
         });
@@ -419,7 +501,8 @@ async function loadSession(sessionId) {
         });
 
         currentSessionId = session.id;
-        updatePhaseTracker(session.current_phase);
+        currentCheckpoint = session.current_checkpoint || 1;
+        updatePhaseTracker(session.current_phase, currentCheckpoint);
         showChatInterface();
     } catch (err) {
         showToast(`Failed to load session: ${err.message}`);
