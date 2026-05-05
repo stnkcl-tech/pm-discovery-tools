@@ -17,3 +17,6 @@ htmlcov/
 # ── Local Development ──────────────────────────────────────────────────────
 .env
 .env.local
+
+Discovery/*.md
+Solutions/*.md
