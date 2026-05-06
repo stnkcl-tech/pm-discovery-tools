@@ -16,6 +16,14 @@ from threading import Lock
 
 from flask import Flask, render_template, request, jsonify, Response, send_from_directory
 from flask_cors import CORS
+from werkzeug.utils import secure_filename
+
+# Optional PDF text extraction
+try:
+    import PyPDF2
+    HAS_PYPDF2 = True
+except ImportError:
+    HAS_PYPDF2 = False
 
 # Import report generator
 from report_generator import (
@@ -278,6 +286,15 @@ def user_wants_to_advance(text: str) -> bool:
     return any(sig in text_lower for sig in advance_signals)
 
 
+def strip_checkpoint_markers(text: str) -> str:
+    """Remove checkpoint marker lines from Kimi responses for cleaner UI."""
+    # Remove lines like "📍 CHECKPOINT 1" or "📍 CHECKPOINT 2 — ..."
+    text = re.sub(r'📍\s*CHECKPOINT\s*\d+[^\n]*', '', text, flags=re.IGNORECASE)
+    # Clean up extra whitespace left behind
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    return text.strip()
+
+
 def build_discovery_system_prompt(checkpoint: int = None) -> str:
     """Build the discovery skill-triggering system prompt."""
     base = (
@@ -402,6 +419,7 @@ def api_chat():
                 "messages": [],
                 "current_phase": 1,
                 "current_checkpoint": 1,
+                "cp_input_count": 0,
                 "skill": skill,
             }
         session = sessions[session_id]
@@ -419,10 +437,27 @@ def api_chat():
 
     # For discovery skill: manage checkpoint progression
     checkpoint = session.get("current_checkpoint", 1)
+    auto_advanced = False
+    validation_ui = False
+    can_go_back = False
+
     if skill == "discovery":
-        # Only auto-advance if user EXPLICITLY signals they want to proceed
-        # AND the last assistant message was a checkpoint marker
-        if user_wants_to_advance(message) and len(session["messages"]) >= 2:
+        # Track input count per checkpoint
+        if checkpoint == 1:
+            session["cp_input_count"] = session.get("cp_input_count", 0) + 1
+            # Auto-advance to CP2 after 3 user inputs in CP1
+            if session["cp_input_count"] >= 3:
+                checkpoint = 2
+                session["current_checkpoint"] = checkpoint
+                auto_advanced = True
+                validation_ui = True
+                can_go_back = True
+        elif checkpoint == 2:
+            validation_ui = True
+            can_go_back = True
+
+        # Also handle explicit advancement signals
+        if not auto_advanced and user_wants_to_advance(message) and len(session["messages"]) >= 2:
             assistant_msgs = [m for m in session["messages"] if m["role"] == "assistant"]
             if assistant_msgs:
                 last_assistant = assistant_msgs[-1]["content"].lower()
@@ -430,6 +465,9 @@ def api_chat():
                 if cp_marker in last_assistant and checkpoint < 7:
                     checkpoint += 1
                     session["current_checkpoint"] = checkpoint
+                    if checkpoint == 2:
+                        validation_ui = True
+                        can_go_back = True
 
     # Build system prompt
     system_prompt = None
@@ -442,8 +480,16 @@ def api_chat():
         for m in session["messages"][-6:]  # Last 6 messages for context
     )
 
+    # If auto-advancing to CP2, append trigger message
+    if auto_advanced:
+        history += "\n\nUser: The user has confirmed their answers and wants to proceed. Please synthesize a confirmed problem statement."
+
     # Run Kimi
     assistant_reply = run_kimi(history, skill=skill, system_prompt=system_prompt)
+
+    # Strip checkpoint markers from response for cleaner UI
+    assistant_reply = strip_checkpoint_markers(assistant_reply)
+
     assistant_phase = detect_phase(assistant_reply, skill)
     current_phase = max(user_phase, assistant_phase, session["current_phase"])
     session["current_phase"] = current_phase
@@ -463,7 +509,9 @@ def api_chat():
         "current_checkpoint": checkpoint,
         "phase_name": next((p["name"] for p in phases if p["id"] == current_phase), "Unknown"),
         "skill": skill,
-        "can_advance": skill == "discovery" and checkpoint < 7 and f"📍 CHECKPOINT {checkpoint}" in assistant_reply,
+        "can_advance": skill == "discovery" and checkpoint < 7 and not validation_ui,
+        "validation_ui": validation_ui,
+        "can_go_back": can_go_back,
     })
 
 
@@ -512,6 +560,8 @@ def advance_checkpoint():
     system_prompt = build_discovery_system_prompt(next_cp)
     assistant_reply = run_kimi(history, skill="discovery", system_prompt=system_prompt)
 
+    assistant_reply = strip_checkpoint_markers(assistant_reply)
+
     assistant_phase = detect_phase(assistant_reply, "discovery")
     current_phase = max(assistant_phase, session["current_phase"])
     session["current_phase"] = current_phase
@@ -524,6 +574,9 @@ def advance_checkpoint():
         "phase": current_phase,
     })
 
+    validation_ui = next_cp == 2
+    can_go_back = next_cp == 2
+
     return jsonify({
         "response": assistant_reply,
         "session_id": session_id,
@@ -531,7 +584,68 @@ def advance_checkpoint():
         "current_checkpoint": next_cp,
         "phase_name": next((p["name"] for p in DISCOVERY_PHASES if p["id"] == current_phase), "Unknown"),
         "skill": "discovery",
-        "can_advance": next_cp < 7 and f"📍 CHECKPOINT {next_cp}" in assistant_reply,
+        "can_advance": next_cp < 7 and not validation_ui,
+        "validation_ui": validation_ui,
+        "can_go_back": can_go_back,
+    })
+
+
+@app.route("/api/go-back-checkpoint", methods=["POST"])
+def go_back_checkpoint():
+    """Go back from CP2 to CP1 to allow adding more context."""
+    data = request.get_json(force=True) or {}
+    session_id = data.get("session_id")
+
+    if not session_id:
+        return jsonify({"error": "session_id is required"}), 400
+
+    with sessions_lock:
+        session = sessions.get(session_id)
+        if not session:
+            return jsonify({"error": "Session not found"}), 404
+
+        if session.get("skill") != "discovery":
+            return jsonify({"error": "Checkpoint navigation only for discovery skill"}), 400
+
+        current_cp = session.get("current_checkpoint", 1)
+        if current_cp != 2:
+            return jsonify({"error": "Can only go back from checkpoint 2"}), 400
+
+        session["current_checkpoint"] = 1
+        session["cp_input_count"] = max(0, session.get("cp_input_count", 3) - 1)
+
+    # Build history and ask Kimi to continue probing with the added context
+    history = "\n\n".join(
+        f"{'User' if m['role'] == 'user' else 'Assistant'}: {m['content']}"
+        for m in session["messages"][-6:]
+    )
+    history += "\n\nUser: I have more context to add. Please ask additional probing questions before we synthesize the problem statement."
+
+    system_prompt = build_discovery_system_prompt(1)
+    assistant_reply = run_kimi(history, skill="discovery", system_prompt=system_prompt)
+    assistant_reply = strip_checkpoint_markers(assistant_reply)
+
+    assistant_phase = detect_phase(assistant_reply, "discovery")
+    current_phase = max(assistant_phase, session["current_phase"])
+    session["current_phase"] = current_phase
+
+    session["messages"].append({
+        "role": "assistant",
+        "content": assistant_reply,
+        "timestamp": datetime.now().isoformat(),
+        "phase": current_phase,
+    })
+
+    return jsonify({
+        "response": assistant_reply,
+        "session_id": session_id,
+        "current_phase": current_phase,
+        "current_checkpoint": 1,
+        "phase_name": next((p["name"] for p in DISCOVERY_PHASES if p["id"] == current_phase), "Unknown"),
+        "skill": "discovery",
+        "can_advance": False,
+        "validation_ui": False,
+        "can_go_back": False,
     })
 
 
@@ -772,6 +886,59 @@ def serve_discovery(filename):
     if not safe_path.startswith(os.path.normpath(DISCOVERIES_DIR)):
         return jsonify({"error": "Invalid path"}), 403
     return send_from_directory(DISCOVERIES_DIR, filename)
+
+
+# ── PDF Upload ─────────────────────────────────────────────────────────────
+
+@app.route("/api/upload-solution-pdf", methods=["POST"])
+def upload_solution_pdf():
+    """Accept a PDF upload, extract text, and return it."""
+    if "pdf" not in request.files:
+        return jsonify({"error": "No PDF file provided"}), 400
+
+    pdf_file = request.files["pdf"]
+    if pdf_file.filename == "":
+        return jsonify({"error": "Empty filename"}), 400
+
+    if not pdf_file.filename.lower().endswith(".pdf"):
+        return jsonify({"error": "File must be a PDF"}), 400
+
+    # Save temporarily
+    temp_dir = os.path.join(PROJECT_ROOT, ".tmp")
+    os.makedirs(temp_dir, exist_ok=True)
+    filename = secure_filename(pdf_file.filename)
+    temp_path = os.path.join(temp_dir, f"{uuid.uuid4().hex}_{filename}")
+
+    try:
+        pdf_file.save(temp_path)
+
+        # Extract text
+        extracted_text = ""
+        if HAS_PYPDF2:
+            try:
+                with open(temp_path, "rb") as f:
+                    reader = PyPDF2.PdfReader(f)
+                    for page in reader.pages:
+                        page_text = page.extract_text()
+                        if page_text:
+                            extracted_text += page_text + "\n"
+            except Exception as e:
+                return jsonify({"error": f"Failed to extract PDF text: {str(e)}"}), 500
+        else:
+            return jsonify({"error": "PyPDF2 is not installed"}), 500
+
+        # Truncate if extremely long
+        if len(extracted_text) > 30000:
+            extracted_text = extracted_text[:30000] + "\n\n[Content truncated due to length]"
+
+        return jsonify({"success": True, "text": extracted_text.strip(), "filename": filename})
+    finally:
+        # Clean up temp file
+        if os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except Exception:
+                pass
 
 
 # ── Main ───────────────────────────────────────────────────────────────────

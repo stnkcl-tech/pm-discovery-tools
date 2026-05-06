@@ -1,6 +1,6 @@
 /**
  * Product Discovery Manager + Solution Architect - Frontend
- * Handles chat UI, session management, skill switching, and API communication.
+ * Clean, minimal interface with journey sidebar and step header.
  */
 
 // ── State ──────────────────────────────────────────────────────────────────
@@ -8,13 +8,13 @@
 let currentSessionId = null;
 let isLoading = false;
 let sessions = [];
-let currentSkill = "discovery"; // "discovery" | "solution"
+let currentSkill = "discovery";
 let currentCheckpoint = 1;
 
 const PHASES_DISCOVERY = [
-    { id: 1, name: "Problem Elicitation", desc: "Validate the problem statement" },
-    { id: 2, name: "JTBD Analysis", desc: "Identify core and related jobs" },
-    { id: 3, name: "Competitive Landscape", desc: "Map solutions and gaps" },
+    { id: 1, name: "Problem Elicitation", desc: "Understand the core problem" },
+    { id: 2, name: "JTBD Analysis", desc: "Identify jobs to be done" },
+    { id: 3, name: "Competitive Landscape", desc: "Map existing solutions" },
     { id: 4, name: "Success Metrics", desc: "Define measurable outcomes" },
     { id: 5, name: "User Journey Mapping", desc: "Visualize the experience" },
 ];
@@ -30,56 +30,54 @@ const CHECKPOINT_NAMES = {
 };
 
 const PHASES_SOLUTION = [
-    { id: 1, name: "Discovery Input", desc: "Retrieve and synthesize discovery findings" },
-    { id: 2, name: "Barrier Analysis", desc: "Identify what prevents job completion" },
-    { id: 3, name: "Opportunity Exploration", desc: "Explore low-tech solutions first" },
-    { id: 4, name: "Opportunity Solution Tree", desc: "Visualize barriers and opportunities" },
+    { id: 1, name: "Discovery Input", desc: "Synthesize discovery findings" },
+    { id: 2, name: "Barrier Analysis", desc: "Identify what prevents completion" },
+    { id: 3, name: "Opportunity Exploration", desc: "Explore low-tech solutions" },
+    { id: 4, name: "Opportunity Solution Tree", desc: "Visualize opportunities" },
     { id: 5, name: "T-Shirt Sizing", desc: "Estimate relative effort" },
-    { id: 6, name: "RICE Prioritization", desc: "Score by Reach, Impact, Confidence, Effort" },
-    { id: 7, name: "Solution Recommendation", desc: "Recommend next easiest high-impact step" },
-    { id: 8, name: "Validation Plan", desc: "Define how to test with real users" },
+    { id: 6, name: "RICE Prioritization", desc: "Score by RICE framework" },
+    { id: 7, name: "Solution Recommendation", desc: "Recommend next best step" },
+    { id: 8, name: "Validation Plan", desc: "Define testing approach" },
 ];
 
 const SKILL_CONFIG = {
     discovery: {
         phases: PHASES_DISCOVERY,
-        logo: "🔍",
-        title: "Product Discovery Manager",
-        subtitle: "Structured customer discovery powered by JTBD",
-        sidebarTitle: "Discovery Phases",
-        landingIcon: "🎯",
-        landingHeading: "What problem are you trying to solve?",
-        landingDesc: "Describe your customer problem or product idea. The Product Discovery Manager will guide you through a structured discovery process.",
+        brandName: "Discovery",
+        stepLabel: "Product Discovery",
+        stepTitle: "What problem are you trying to solve today?",
+        landingEyebrow: "Step 1 of 5",
+        landingHeadline: "What problem are you trying to solve today?",
+        landingSubtitle: "Describe the customer problem or product idea you're exploring. Be as specific as you can — we'll refine it together.",
         startBtnText: "Start Discovery",
         senderName: "Product Discovery Manager",
-        welcomeMsg: `<p>Hello! I'm your Product Discovery Manager. I'll guide you through a <strong>collaborative, checkpoint-driven discovery process</strong> grounded in Cagan's product model principles and the Jobs-to-be-Done framework.</p><p>Here's how it works: I'll stop at each checkpoint to ask for your input or confirmation before moving forward. We'll work through 5 phases together — Problem Elicitation → JTBD Analysis → Competitive Landscape → Success Metrics → User Journey Mapping.</p><p>Let's start! Please describe the customer problem or need you're exploring, and I'll begin Phase 1.</p>`,
+        welcomeMsg: `<p>Hello! I'm your Product Discovery Manager. I'll guide you through a structured discovery process grounded in Jobs-to-be-Done and Marty Cagan's product model principles.</p><p>We'll work through 5 phases together — stopping at each checkpoint for your input before continuing.</p>`,
         saveEndpoint: "/api/save-discovery",
         listEndpoint: "/api/discoveries",
         reportEndpointPrefix: "/api/generate-report",
         reportUrlPrefix: "/Discovery/_result",
-        browseTitle: "📂 Discovery Reports",
+        browseTitle: "Saved Discoveries",
         emptyMsg: "No discoveries yet. Start a discovery session and save it!",
-        hint: "Collaborative workflow: Kimi stops at each checkpoint for your input before continuing",
+        solutionToggleText: "Help me explore solutions",
     },
     solution: {
         phases: PHASES_SOLUTION,
-        logo: "🛠️",
-        title: "Solution Architect",
-        subtitle: "Low-friction solutions for non-tech-savvy users",
-        sidebarTitle: "Solution Phases",
-        landingIcon: "💡",
-        landingHeading: "What discovery output are we solutioning for?",
-        landingDesc: "Paste your discovery summary or describe the problem space. The Solution Architect will find the quickest, lowest-friction path to validate a solution — starting from free tools and no-code before proposing custom builds.",
+        brandName: "Solution",
+        stepLabel: "Solution Architect",
+        stepTitle: "What discovery output are we solutioning for?",
+        landingEyebrow: "Step 1 of 8",
+        landingHeadline: "What discovery output are we solutioning for?",
+        landingSubtitle: "Paste your discovery summary or describe the problem space. We'll find the quickest, lowest-friction path — starting from free tools and no-code before proposing custom builds.",
         startBtnText: "Start Solutioning",
         senderName: "Solution Architect",
-        welcomeMsg: `<p>Hello! I'm your Solution Architect. I'll help you find the quickest, easiest way to solve the problems identified in your discovery — starting from process fixes and free tools, through no/low-code platforms, before ever proposing a custom build.</p><p>Share your discovery summary or describe the problem, and I'll begin Phase 1: Discovery Input.</p>`,
+        welcomeMsg: `<p>Hello! I'm your Solution Architect. I'll help you find the quickest, easiest way to solve the problems identified in your discovery.</p><p>We'll explore solutions from process fixes and free tools, through no/low-code platforms, before ever proposing a custom build.</p>`,
         saveEndpoint: "/api/save-solution",
         listEndpoint: "/api/solutions",
         reportEndpointPrefix: "/api/generate-solution-report",
         reportUrlPrefix: "/Solutions/_result",
-        browseTitle: "📂 Solution Reports",
+        browseTitle: "Saved Solutions",
         emptyMsg: "No solutions yet. Start a solution session and save it!",
-        hint: "Kimi triggers the solution-architect skill automatically based on your messages",
+        solutionToggleText: "Switch to discovery mode",
     },
 };
 
@@ -96,31 +94,65 @@ const sendBtn = document.getElementById('send-btn');
 const exportBtn = document.getElementById('export-btn');
 const clearBtn = document.getElementById('clear-btn');
 const sessionSelect = document.getElementById('session-select');
-const skillSelect = document.getElementById('skill-select');
-const currentPhaseBadge = document.getElementById('current-phase-badge');
 const toast = document.getElementById('toast');
 const toastMessage = document.getElementById('toast-message');
 const saveBtn = document.getElementById('save-btn');
-const generateReportBtn = document.getElementById('generate-report-btn');
 const browseBtn = document.getElementById('browse-btn');
 const browseModal = document.getElementById('browse-modal');
 const closeModalBtn = document.getElementById('close-modal');
 const browseList = document.getElementById('browse-list');
 
 // Dynamic UI elements
-const headerLogo = document.getElementById('header-logo');
-const headerTitle = document.getElementById('header-title');
-const headerSubtitle = document.getElementById('header-subtitle');
-const sidebarTitle = document.getElementById('sidebar-title');
-const phasesList = document.getElementById('phases-list');
-const sidebarHint = document.getElementById('sidebar-hint');
-const landingIcon = document.getElementById('landing-icon');
-const landingHeading = document.getElementById('landing-heading');
-const landingDesc = document.getElementById('landing-desc');
-const startBtnText = document.getElementById('start-btn-text');
+const journeyNav = document.getElementById('journey-nav');
+const stepLabel = document.getElementById('step-label');
+const stepTitle = document.getElementById('step-title');
+const brandName = document.querySelector('.brand-name');
+const landingEyebrow = document.querySelector('.landing-eyebrow');
+const landingHeadline = document.querySelector('.landing-headline');
+const landingSubtitle = document.querySelector('.landing-subtitle');
+const startBtnSpan = startBtn.querySelector('span');
 const welcomeSender = document.getElementById('welcome-sender');
 const welcomeText = document.getElementById('welcome-text');
 const browseModalTitle = document.getElementById('browse-modal-title');
+const solutionToggle = document.getElementById('solution-toggle');
+const solutionToggleText = document.getElementById('solution-toggle-text');
+const checkpointBadge = document.getElementById('checkpoint-badge');
+const checkpointNum = document.getElementById('checkpoint-num');
+
+// PDF upload elements
+const pdfUploadZone = document.getElementById('pdf-upload-zone');
+const pdfInput = document.getElementById('pdf-input');
+const pdfTarget = document.getElementById('pdf-target');
+const pdfFileInfo = document.getElementById('pdf-file-info');
+const pdfFileName = document.getElementById('pdf-file-name');
+const pdfRemoveBtn = document.getElementById('pdf-remove-btn');
+const inputToggle = document.getElementById('input-toggle');
+const textInputWrapper = document.getElementById('text-input-wrapper');
+const startBtnLabel = document.getElementById('start-btn-label');
+
+// Progress bar elements
+const progressFill = document.getElementById('progress-fill');
+const loadingText = document.getElementById('loading-text');
+const progressPercent = document.getElementById('progress-percent');
+
+// Validation UI elements
+const validationUi = document.getElementById('validation-ui');
+const problemStatementDisplay = document.getElementById('problem-statement-display');
+const problemStatementEdit = document.getElementById('problem-statement-edit');
+const problemStatementEditor = document.getElementById('problem-statement-editor');
+const validationActionsView = document.getElementById('validation-actions-view');
+const validationActionsEdit = document.getElementById('validation-actions-edit');
+const btnEditStatement = document.getElementById('btn-edit-statement');
+const btnConfirmStatement = document.getElementById('btn-confirm-statement');
+const btnCancelEdit = document.getElementById('btn-cancel-edit');
+const btnSaveEdit = document.getElementById('btn-save-edit');
+const btnAddContext = document.getElementById('btn-add-context');
+
+// PDF state
+let selectedPdfFile = null;
+let solutionInputMode = 'pdf'; // 'pdf' | 'text'
+let progressInterval = null;
+let currentProblemStatement = '';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -130,17 +162,75 @@ function showToast(message, duration = 3000) {
     setTimeout(() => toast.classList.add('hidden'), duration);
 }
 
-function setLoading(loading) {
+function setLoading(loading, text = 'Analyzing your problem...') {
     isLoading = loading;
     if (loading) {
         loadingIndicator.classList.remove('hidden');
+        chatInputArea.classList.add('hidden');
+        loadingText.textContent = text;
+        startProgressBar();
         sendBtn.disabled = true;
         startBtn.disabled = true;
     } else {
-        loadingIndicator.classList.add('hidden');
+        finishProgressBar();
+        // Only restore chat input if we're in chat mode and validation UI is hidden
+        if (landingState.classList.contains('hidden') && validationUi.classList.contains('hidden')) {
+            chatInputArea.classList.remove('hidden');
+        }
         sendBtn.disabled = false;
         startBtn.disabled = false;
     }
+}
+
+function startProgressBar() {
+    let progress = 0;
+    let messageIndex = 0;
+    const loadingMessages = [
+        'Analyzing your problem...',
+        'Synthesizing insights...',
+        'Connecting the dots...',
+        'Still working...',
+        'Almost there...',
+    ];
+    progressFill.style.width = '0%';
+    progressPercent.textContent = '0.00%';
+    if (progressInterval) clearInterval(progressInterval);
+    if (window.messageInterval) clearInterval(window.messageInterval);
+    progressInterval = setInterval(() => {
+        if (progress < 50) {
+            progress += Math.random() * 1.8;
+            if (progress > 50) progress = 50;
+        } else if (progress < 80) {
+            progress += Math.random() * 1.2;
+            if (progress > 80) progress = 80;
+        } else if (progress < 95) {
+            progress += Math.random() * 3;
+            if (progress > 95) progress = 95;
+        } else {
+            // Fast finish from 95% to 99.99% so it doesn't stall at 100%
+            progress += Math.random() * 6;
+            if (progress > 99.99) progress = 99.99;
+        }
+        progressFill.style.width = progress + '%';
+        progressPercent.textContent = progress.toFixed(2) + '%';
+    }, 400);
+    // Cycle loading text to reassure users the system is still active
+    window.messageInterval = setInterval(() => {
+        messageIndex = (messageIndex + 1) % loadingMessages.length;
+        loadingText.textContent = loadingMessages[messageIndex];
+    }, 3500);
+}
+
+function finishProgressBar() {
+    if (progressInterval) clearInterval(progressInterval);
+    if (window.messageInterval) clearInterval(window.messageInterval);
+    progressFill.style.width = '100%';
+    progressPercent.textContent = '100%';
+    setTimeout(() => {
+        loadingIndicator.classList.add('hidden');
+        progressFill.style.width = '0%';
+        progressPercent.textContent = '0%';
+    }, 400);
 }
 
 function escapeHtml(text) {
@@ -149,34 +239,19 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// Simple Markdown to HTML converter
 function markdownToHtml(markdown) {
     let html = escapeHtml(markdown);
 
-    // Code blocks
     html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
-
-    // Inline code
     html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-
-    // Headers
     html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
     html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
     html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
-
-    // Bold
     html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
-    // Italic
     html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
-
-    // Blockquote
     html = html.replace(/^&gt; (.*$)/gim, '<blockquote>$1</blockquote>');
-
-    // Horizontal rule
     html = html.replace(/^---$/gim, '<hr>');
 
-    // Tables (simple parser)
     const tableRegex = /((?:\|[^\n]*\|\n?)+)/g;
     html = html.replace(tableRegex, (match) => {
         const rows = match.trim().split('\n').filter(r => r.trim());
@@ -185,7 +260,6 @@ function markdownToHtml(markdown) {
         rows.forEach((row, i) => {
             const cells = row.split('|').filter(c => c.trim() !== '');
             if (cells.length === 0) return;
-            // Skip separator rows (|---|...)
             if (cells.every(c => c.trim().replace(/-/g, '') === '')) return;
             const tag = i === 0 ? 'th' : 'td';
             tableHtml += '<tr>' + cells.map(c => `<${tag}>${c.trim()}</${tag}>`).join('') + '</tr>';
@@ -194,21 +268,12 @@ function markdownToHtml(markdown) {
         return tableHtml;
     });
 
-    // Lists
     html = html.replace(/^\* (.*$)/gim, '<li>$1</li>');
     html = html.replace(/^- (.*$)/gim, '<li>$1</li>');
     html = html.replace(/^\d+\. (.*$)/gim, '<li>$1</li>');
-
-    // Wrap consecutive li elements in ul
-    html = html.replace(/(<li>.*<\/li>\n?)+/g, (match) => {
-        return '<ul>' + match + '</ul>';
-    });
-
-    // Paragraphs
+    html = html.replace(/(<li>.*<\/li>\n?)+/g, (match) => '<ul>' + match + '</ul>');
     html = html.replace(/\n\n/g, '</p><p>');
     html = '<p>' + html + '</p>';
-
-    // Clean up empty paragraphs
     html = html.replace(/<p><\/p>/g, '');
     html = html.replace(/<p>(<(?:h[1-6]|ul|ol|pre|blockquote|hr|table)[^>]*>)/g, '$1');
     html = html.replace(/(<\/(?:h[1-6]|ul|ol|pre|blockquote|hr|table)>)<\/p>/g, '$1');
@@ -220,11 +285,10 @@ function getCurrentPhases() {
     return SKILL_CONFIG[currentSkill].phases;
 }
 
-function updatePhaseTracker(phaseId, checkpoint = null) {
+function updateJourneyTracker(phaseId, checkpoint = null) {
     const cp = checkpoint || currentCheckpoint || 1;
-    currentPhaseBadge.textContent = `Phase ${phaseId} · Checkpoint ${cp}`;
 
-    document.querySelectorAll('.phase-item').forEach(item => {
+    document.querySelectorAll('.journey-item').forEach(item => {
         const itemPhase = parseInt(item.dataset.phase);
         item.classList.remove('active', 'completed');
 
@@ -234,63 +298,215 @@ function updatePhaseTracker(phaseId, checkpoint = null) {
             item.classList.add('completed');
         }
     });
+
+    // Update checkpoint sub-steps within Phase 1
+    document.querySelectorAll('.checkpoint-substep').forEach((sub, index) => {
+        sub.classList.remove('active', 'completed');
+        const subCp = index + 1;
+        if (subCp === cp) {
+            sub.classList.add('active');
+        } else if (subCp < cp) {
+            sub.classList.add('completed');
+        }
+    });
+
+    // Update checkpoint badge
+    if (currentSkill === 'discovery' && checkpoint) {
+        checkpointBadge.classList.remove('hidden');
+        checkpointNum.textContent = cp;
+    } else {
+        checkpointBadge.classList.add('hidden');
+    }
+
+    // Update header title based on phase
+    const phase = getCurrentPhases().find(p => p.id === phaseId);
+    if (phase) {
+        stepTitle.textContent = phase.name;
+        stepLabel.textContent = currentSkill === 'discovery' ? 'Product Discovery' : 'Solution Architect';
+    }
 }
 
-function renderPhases() {
+function renderJourney() {
     const phases = getCurrentPhases();
-    phasesList.innerHTML = phases.map((phase, index) => `
-        <div class="phase-item ${index === 0 ? 'active' : ''}" data-phase="${phase.id}">
-            <div class="phase-number">${phase.id}</div>
-            <div class="phase-info">
-                <div class="phase-name">${phase.name}</div>
-                <div class="phase-desc">${phase.desc}</div>
+    const title = currentSkill === 'discovery' ? 'Discovery Journey' : 'Solution Journey';
+
+    // Build checkpoint sub-steps for Phase 1 (Problem Elicitation) in discovery mode
+    const checkpointSubsteps = currentSkill === 'discovery' ? `
+        <div class="checkpoint-substeps">
+            <div class="checkpoint-substep active" data-substep="1">
+                <div class="substep-dot"></div>
+                <span>Problem Synthesis</span>
+            </div>
+            <div class="checkpoint-substep" data-substep="2">
+                <div class="substep-dot"></div>
+                <span>Problem Statement</span>
             </div>
         </div>
-    `).join('');
+    ` : '';
+
+    journeyNav.innerHTML = `
+        <div class="journey-title">${title}</div>
+        <div class="journey-list">
+            ${phases.map((phase, index) => `
+                <div class="journey-item ${index === 0 ? 'active' : ''}" data-phase="${phase.id}">
+                    <div class="journey-dot"></div>
+                    <div class="journey-info">
+                        <div class="journey-name">${phase.name}</div>
+                        <div class="journey-desc">${phase.desc}</div>
+                        ${phase.id === 1 && currentSkill === 'discovery' ? checkpointSubsteps : ''}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
 }
 
 function applySkillUI() {
     const cfg = SKILL_CONFIG[currentSkill];
 
-    // Header
-    headerLogo.textContent = cfg.logo;
-    headerTitle.textContent = cfg.title;
-    headerSubtitle.textContent = cfg.subtitle;
+    brandName.textContent = cfg.brandName;
+    stepLabel.textContent = cfg.stepLabel;
+    stepTitle.textContent = cfg.stepTitle;
 
-    // Sidebar
-    sidebarTitle.textContent = cfg.sidebarTitle;
-    sidebarHint.innerHTML = `Kimi triggers the <code>${currentSkill === 'discovery' ? 'product-discovery-manager' : 'solution-architect'}</code> skill automatically`;
-    renderPhases();
+    renderJourney();
 
-    // Landing
-    landingIcon.textContent = cfg.landingIcon;
-    landingHeading.textContent = cfg.landingHeading;
-    landingDesc.textContent = cfg.landingDesc;
-    startBtnText.textContent = cfg.startBtnText;
+    landingEyebrow.textContent = cfg.landingEyebrow;
+    landingHeadline.textContent = cfg.landingHeadline;
+    landingSubtitle.textContent = cfg.landingSubtitle;
+    startBtnLabel.textContent = cfg.startBtnText;
 
-    // Welcome message
     welcomeSender.textContent = cfg.senderName;
     welcomeText.innerHTML = cfg.welcomeMsg;
 
-    // Browse modal
     browseModalTitle.textContent = cfg.browseTitle;
+    solutionToggleText.textContent = cfg.solutionToggleText;
+
+    // Show/hide inputs based on skill
+    if (currentSkill === 'solution') {
+        // Default to PDF for solution mode
+        setSolutionInputMode('pdf');
+    } else {
+        // Discovery mode: always text
+        pdfUploadZone.classList.add('hidden');
+        textInputWrapper.classList.remove('hidden');
+        inputToggle.classList.add('hidden');
+    }
+
+    // Show/hide examples based on skill
+    const examples = document.getElementById('landing-examples');
+    if (examples) {
+        examples.style.display = currentSkill === 'discovery' ? 'block' : 'none';
+    }
+}
+
+function setSolutionInputMode(mode) {
+    solutionInputMode = mode;
+    if (mode === 'pdf') {
+        pdfUploadZone.classList.remove('hidden');
+        textInputWrapper.classList.add('hidden');
+        inputToggle.classList.remove('hidden');
+        inputToggle.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="12" x2="16" y2="12"/><polyline points="12 8 16 12 12 16"/></svg> I don't have a PDF, type instead`;
+    } else {
+        pdfUploadZone.classList.add('hidden');
+        textInputWrapper.classList.remove('hidden');
+        inputToggle.classList.remove('hidden');
+        inputToggle.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Upload a PDF instead`;
+    }
 }
 
 function switchSkill(skill) {
     currentSkill = skill;
-    skillSelect.value = skill;
     applySkillUI();
     showLandingInterface();
     loadSessions();
 }
 
 function highlightCheckpoints(html) {
-    // Wrap checkpoint indicator lines with special styling
-    html = html.replace(
-        /(<p>)?📍\s*<strong>CHECKPOINT\s*\d+[^<]*<\/strong>[^<]*([^<]*)(<\/p>)?/gi,
-        '<div class="checkpoint-line">📍 <strong>CHECKPOINT</strong> — Waiting for your input before continuing...</div>'
-    );
+    // Checkpoint markers are now stripped by backend; this is a no-op
     return html;
+}
+
+// ── Validation UI ──────────────────────────────────────────────────────────
+
+function showValidationUI(content) {
+    // 1. Strip any checkpoint markers that may have slipped through
+    let cleaned = content.replace(/📍\s*CHECKPOINT\s*\d+[^\n]*/gi, '').trim();
+
+    // 2. Strip common preamble patterns the model sometimes adds
+    cleaned = cleaned.replace(/^Here's the problem statement based on our discussion\.?\s*[\n\r]+/i, '');
+    cleaned = cleaned.replace(/^Based on our discussion, here[']?s the problem statement\.?\s*[\n\r]+/i, '');
+
+    // 3. Split into paragraphs and identify statement vs follow-up
+    const parts = cleaned.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
+
+    let statement = '';
+    let followUp = '';
+
+    for (let i = 0; i < parts.length; i++) {
+        const part = parts[i];
+        // Detect follow-up question (short and ends with ?)
+        if (part.endsWith('?') && part.length < 300) {
+            followUp = part;
+            continue;
+        }
+        // Detect preamble (first paragraph, no bold, no blockquote)
+        if (i === 0 && /here'?s the|based on our discussion|problem statement/i.test(part) && !part.startsWith('**') && !part.startsWith('>')) {
+            continue;
+        }
+        // First remaining paragraph is the problem statement
+        if (!statement) {
+            statement = part;
+        }
+    }
+
+    // Fallbacks
+    if (!statement && parts.length > 0) {
+        statement = parts[0];
+    }
+    if (!followUp) {
+        followUp = 'Does this accurately capture the problem? What should I adjust?';
+    }
+
+    currentProblemStatement = statement || cleaned;
+    problemStatementDisplay.innerHTML = markdownToHtml(currentProblemStatement);
+    problemStatementEditor.value = currentProblemStatement.replace(/\*\*/g, '').replace(/&gt;\s*/g, '> ');
+
+    // Show follow-up question below the statement box
+    const followUpEl = document.getElementById('validation-follow-up');
+    if (followUpEl) {
+        followUpEl.innerHTML = markdownToHtml(followUp);
+    }
+
+    validationUi.classList.remove('hidden');
+    chatMessages.classList.add('hidden');
+    chatInputArea.classList.add('hidden');
+    validationActionsView.classList.remove('hidden');
+    validationActionsEdit.classList.add('hidden');
+    problemStatementEdit.classList.add('hidden');
+}
+
+function hideValidationUI() {
+    validationUi.classList.add('hidden');
+    chatMessages.classList.remove('hidden');
+    chatInputArea.classList.remove('hidden');
+}
+
+async function confirmProblemStatement() {
+    if (!currentSessionId) return;
+    hideValidationUI();
+    await proceedToNextCheckpoint();
+}
+
+async function saveEditedStatement() {
+    const edited = problemStatementEditor.value.trim();
+    if (!edited) {
+        showToast('Problem statement cannot be empty');
+        return;
+    }
+    currentProblemStatement = edited;
+    hideValidationUI();
+    // Send the edited statement as confirmation
+    await sendMessage(`Yes, that captures it. Here's my revised problem statement:\n\n${edited}`);
 }
 
 function hasCheckpointMarker(content) {
@@ -307,20 +523,21 @@ function addMessage(role, content, phase = 1, canAdvance = false) {
     messageDiv.className = `message ${role}`;
     messageDiv.dataset.phase = phase;
 
-    const avatar = role === 'user' ? '🧑' : '🤖';
+    const avatarSvg = role === 'user'
+        ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'
+        : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>';
     const sender = role === 'user' ? 'You' : SKILL_CONFIG[currentSkill].senderName;
     let htmlContent = markdownToHtml(content);
     htmlContent = highlightCheckpoints(htmlContent);
 
     let proceedButtonHtml = '';
-    if (role === 'assistant' && canAdvance && currentSkill === 'discovery') {
-        const cpNum = getCheckpointNumber(content);
-        const nextCpName = cpNum && cpNum < 7 ? CHECKPOINT_NAMES[cpNum + 1] : null;
+    if (role === 'assistant' && canAdvance && currentSkill === 'discovery' && currentCheckpoint >= 3) {
+        const nextCpName = currentCheckpoint < 7 ? CHECKPOINT_NAMES[currentCheckpoint + 1] : null;
         if (nextCpName) {
             proceedButtonHtml = `
                 <div class="checkpoint-actions">
-                    <button class="btn btn-proceed" onclick="proceedToNextCheckpoint()">
-                        ✅ Confirm & Proceed to ${nextCpName}
+                    <button class="btn-proceed" onclick="proceedToNextCheckpoint()">
+                        Confirm & Proceed to ${nextCpName}
                     </button>
                 </div>
             `;
@@ -328,8 +545,8 @@ function addMessage(role, content, phase = 1, canAdvance = false) {
     }
 
     messageDiv.innerHTML = `
-        <div class="message-avatar">${avatar}</div>
-        <div class="message-content">
+        <div class="message-avatar">${avatarSvg}</div>
+        <div class="message-body">
             <div class="message-sender">${sender}</div>
             <div class="message-text">${htmlContent}</div>
             ${proceedButtonHtml}
@@ -343,7 +560,6 @@ function addMessage(role, content, phase = 1, canAdvance = false) {
 async function proceedToNextCheckpoint() {
     if (!currentSessionId || isLoading) return;
 
-    // Remove all proceed buttons to prevent double-clicks
     document.querySelectorAll('.checkpoint-actions').forEach(el => el.remove());
 
     setLoading(true);
@@ -361,7 +577,7 @@ async function proceedToNextCheckpoint() {
         } else {
             currentCheckpoint = data.current_checkpoint || 1;
             addMessage('assistant', data.response, data.current_phase, data.can_advance);
-            updatePhaseTracker(data.current_phase, currentCheckpoint);
+            updateJourneyTracker(data.current_phase, currentCheckpoint);
             await loadSessions();
         }
     } catch (err) {
@@ -374,29 +590,40 @@ async function proceedToNextCheckpoint() {
 
 function showChatInterface() {
     landingState.classList.add('hidden');
+    validationUi.classList.add('hidden');
     chatMessages.classList.remove('hidden');
     chatInputArea.classList.remove('hidden');
     exportBtn.disabled = false;
     saveBtn.disabled = false;
-    generateReportBtn.disabled = false;
 }
 
 function showLandingInterface() {
     landingState.classList.remove('hidden');
+    validationUi.classList.add('hidden');
     chatMessages.classList.add('hidden');
     chatInputArea.classList.add('hidden');
     exportBtn.disabled = true;
+    saveBtn.disabled = true;
     problemInput.value = '';
     chatInput.value = '';
     currentSessionId = null;
     currentCheckpoint = 1;
-    updatePhaseTracker(1, 1);
+    selectedPdfFile = null;
+    pdfFileInfo.classList.add('hidden');
+    pdfTarget.classList.remove('hidden');
+    updateJourneyTracker(1, 1);
 
-    // Reset chat messages to welcome only
+    // Reset input mode
+    if (currentSkill === 'solution') {
+        setSolutionInputMode('pdf');
+    }
+
     chatMessages.innerHTML = `
         <div class="welcome-message">
-            <div class="message-avatar">🤖</div>
-            <div class="message-content">
+            <div class="message-avatar">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+            </div>
+            <div class="message-body">
                 <div class="message-sender">${SKILL_CONFIG[currentSkill].senderName}</div>
                 <div class="message-text">${SKILL_CONFIG[currentSkill].welcomeMsg}</div>
             </div>
@@ -428,15 +655,25 @@ async function sendMessage(message) {
         } else {
             currentSessionId = data.session_id;
             currentCheckpoint = data.current_checkpoint || 1;
-            addMessage('assistant', data.response, data.current_phase, data.can_advance);
-            updatePhaseTracker(data.current_phase, currentCheckpoint);
+
+            if (data.validation_ui) {
+                showValidationUI(data.response);
+            } else {
+                addMessage('assistant', data.response, data.current_phase, data.can_advance);
+            }
+
+            updateJourneyTracker(data.current_phase, currentCheckpoint);
             await loadSessions();
         }
     } catch (err) {
-        addMessage('assistant', `**Connection Error:** ${err.message}\n\nPlease make sure the Flask server is running (\`python3 app.py\`).`);
+        addMessage('assistant', `**Connection Error:** ${err.message}\n\nPlease make sure the Flask server is running.`);
     } finally {
         setLoading(false);
-        chatInput.focus();
+        if (!validationUi.classList.contains('hidden')) {
+            // Focus nothing when validation UI is shown
+        } else {
+            chatInput.focus();
+        }
     }
 }
 
@@ -446,18 +683,16 @@ async function loadSessions() {
         const data = await response.json();
         sessions = data;
 
-        // Rebuild session dropdown
         const currentVal = sessionSelect.value;
         sessionSelect.innerHTML = '<option value="">New Session</option>';
 
         data.forEach(session => {
-            // Only show sessions for current skill
             if (session.skill !== currentSkill) return;
             const option = document.createElement('option');
             option.value = session.id;
             const date = new Date(session.created_at).toLocaleString();
             const cpLabel = session.current_checkpoint ? ` · CP${session.current_checkpoint}` : '';
-            option.textContent = `Session ${session.id} — ${session.phase_name}${cpLabel} (${session.message_count} msgs)`;
+            option.textContent = `Session ${session.id} — ${session.phase_name}${cpLabel}`;
             if (session.id === currentVal) option.selected = true;
             sessionSelect.appendChild(option);
         });
@@ -478,16 +713,16 @@ async function loadSession(sessionId) {
             return;
         }
 
-        // If session skill differs from current, switch
         if (session.skill && session.skill !== currentSkill) {
             switchSkill(session.skill);
         }
 
-        // Clear and rebuild chat
         chatMessages.innerHTML = `
             <div class="welcome-message">
-                <div class="message-avatar">🤖</div>
-                <div class="message-content">
+                <div class="message-avatar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                </div>
+                <div class="message-body">
                     <div class="message-sender">${SKILL_CONFIG[currentSkill].senderName}</div>
                     <div class="message-text">
                         <p>Resuming session <strong>${session.id}</strong>. Current phase: <strong>${getCurrentPhases().find(p => p.id === session.current_phase)?.name || 'Unknown'}</strong>.</p>
@@ -502,8 +737,15 @@ async function loadSession(sessionId) {
 
         currentSessionId = session.id;
         currentCheckpoint = session.current_checkpoint || 1;
-        updatePhaseTracker(session.current_phase, currentCheckpoint);
-        showChatInterface();
+        updateJourneyTracker(session.current_phase, currentCheckpoint);
+
+        // If session was in checkpoint 2, show validation UI with last assistant message
+        const lastAssistantMsg = session.messages.filter(m => m.role === 'assistant').pop();
+        if (currentCheckpoint === 2 && lastAssistantMsg) {
+            showValidationUI(lastAssistantMsg.content);
+        } else {
+            showChatInterface();
+        }
     } catch (err) {
         showToast(`Failed to load session: ${err.message}`);
     }
@@ -529,7 +771,6 @@ async function saveOutput() {
 
     try {
         saveBtn.disabled = true;
-        saveBtn.textContent = '💾 Saving...';
 
         const response = await fetch(cfg.saveEndpoint, {
             method: 'POST',
@@ -547,7 +788,6 @@ async function saveOutput() {
         showToast(`Failed to save: ${err.message}`);
     } finally {
         saveBtn.disabled = false;
-        saveBtn.textContent = '💾 Save';
     }
 }
 
@@ -555,15 +795,9 @@ async function generateReport() {
     if (!currentSessionId) return;
 
     const cfg = SKILL_CONFIG[currentSkill];
-
-    // First save
     await saveOutput();
 
-    // Get the most recent folder
     try {
-        generateReportBtn.disabled = true;
-        generateReportBtn.textContent = '📄 Generating...';
-
         const outputs = await fetch(cfg.listEndpoint).then(r => r.json());
         if (!outputs.length) {
             showToast('No saved outputs found to generate report');
@@ -584,9 +818,6 @@ async function generateReport() {
         }
     } catch (err) {
         showToast(`Failed to generate report: ${err.message}`);
-    } finally {
-        generateReportBtn.disabled = false;
-        generateReportBtn.textContent = '📄 Report';
     }
 }
 
@@ -605,16 +836,15 @@ async function loadOutputs() {
             <div class="discovery-item" data-folder="${d.name}">
                 <div class="discovery-info">
                     <div class="discovery-name">${d.problem_name}</div>
-                    <div class="discovery-meta">${d.formatted_date} · ${d.md_files} files ${d.has_report ? '· ✅ Report' : ''}</div>
+                    <div class="discovery-meta">${d.formatted_date} · ${d.md_files} files ${d.has_report ? '· Report ready' : ''}</div>
                 </div>
                 <div class="discovery-actions">
-                    ${d.has_report ? `<a href="${cfg.reportUrlPrefix}/${d.name}/index.html" target="_blank" class="btn btn-primary">View</a>` : ''}
-                    <button class="btn btn-secondary btn-generate" data-folder="${d.name}">Generate</button>
+                    ${d.has_report ? `<a href="${cfg.reportUrlPrefix}/${d.name}/index.html" target="_blank" class="btn-primary">View</a>` : ''}
+                    <button class="btn-secondary btn-generate" data-folder="${d.name}">Generate</button>
                 </div>
             </div>
         `).join('');
 
-        // Add event listeners to generate buttons
         browseList.querySelectorAll('.btn-generate').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
@@ -670,17 +900,113 @@ async function deleteSession(sessionId) {
 
 // ── Event Listeners ────────────────────────────────────────────────────────
 
-startBtn.addEventListener('click', () => {
+startBtn.addEventListener('click', async () => {
+    if (currentSkill === 'solution' && solutionInputMode === 'pdf') {
+        if (!selectedPdfFile) {
+            showToast('Please upload a PDF first');
+            pdfTarget.click();
+            return;
+        }
+        await uploadPdfAndStart();
+        return;
+    }
+
     const problem = problemInput.value.trim();
     if (!problem) {
         showToast('Please describe your problem first');
         problemInput.focus();
         return;
     }
-
     showChatInterface();
     sendMessage(problem);
 });
+
+// PDF upload handling
+pdfTarget.addEventListener('click', () => pdfInput.click());
+
+pdfInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) handlePdfSelect(file);
+});
+
+// Drag & drop
+pdfUploadZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    pdfTarget.style.borderColor = 'var(--text-secondary)';
+    pdfTarget.style.background = 'var(--bg-elevated)';
+});
+
+pdfUploadZone.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    pdfTarget.style.borderColor = '';
+    pdfTarget.style.background = '';
+});
+
+pdfUploadZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    pdfTarget.style.borderColor = '';
+    pdfTarget.style.background = '';
+    const file = e.dataTransfer.files[0];
+    if (file && file.type === 'application/pdf') {
+        handlePdfSelect(file);
+    } else {
+        showToast('Please drop a PDF file');
+    }
+});
+
+function handlePdfSelect(file) {
+    selectedPdfFile = file;
+    pdfFileName.textContent = file.name;
+    pdfTarget.classList.add('hidden');
+    pdfFileInfo.classList.remove('hidden');
+}
+
+pdfRemoveBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    selectedPdfFile = null;
+    pdfInput.value = '';
+    pdfFileInfo.classList.add('hidden');
+    pdfTarget.classList.remove('hidden');
+});
+
+inputToggle.addEventListener('click', () => {
+    const newMode = solutionInputMode === 'pdf' ? 'text' : 'pdf';
+    setSolutionInputMode(newMode);
+});
+
+async function uploadPdfAndStart() {
+    if (!selectedPdfFile) return;
+
+    setLoading(true);
+    const formData = new FormData();
+    formData.append('pdf', selectedPdfFile);
+
+    try {
+        const response = await fetch('/api/upload-solution-pdf', {
+            method: 'POST',
+            body: formData,
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+            showToast(`Error: ${data.error}`);
+            setLoading(false);
+            return;
+        }
+
+        const extractedText = data.text || '';
+        const message = extractedText
+            ? `Here is my discovery summary from a PDF:\n\n${extractedText}\n\nPlease help me explore solutions based on this.`
+            : 'I uploaded a discovery PDF. Please help me explore solutions.';
+
+        showChatInterface();
+        sendMessage(message);
+    } catch (err) {
+        showToast(`Upload failed: ${err.message}`);
+        setLoading(false);
+    }
+}
 
 sendBtn.addEventListener('click', () => {
     sendMessage(chatInput.value);
@@ -696,6 +1022,8 @@ chatInput.addEventListener('keydown', (e) => {
 chatInput.addEventListener('input', () => {
     chatInput.style.height = 'auto';
     chatInput.style.height = Math.min(chatInput.scrollHeight, 200) + 'px';
+    // Ensure cursor stays visible when typing multi-line text
+    chatInput.scrollTop = chatInput.scrollHeight;
 });
 
 problemInput.addEventListener('keydown', (e) => {
@@ -706,15 +1034,9 @@ problemInput.addEventListener('keydown', (e) => {
 });
 
 exportBtn.addEventListener('click', exportSession);
-
 saveBtn.addEventListener('click', saveOutput);
-
-generateReportBtn.addEventListener('click', generateReport);
-
 browseBtn.addEventListener('click', openBrowseModal);
-
 closeModalBtn.addEventListener('click', closeBrowseModal);
-
 browseModal.querySelector('.modal-overlay').addEventListener('click', closeBrowseModal);
 
 clearBtn.addEventListener('click', () => {
@@ -734,14 +1056,60 @@ sessionSelect.addEventListener('change', () => {
     }
 });
 
-skillSelect.addEventListener('change', () => {
-    switchSkill(skillSelect.value);
+solutionToggle.addEventListener('click', () => {
+    const newSkill = currentSkill === 'discovery' ? 'solution' : 'discovery';
+    switchSkill(newSkill);
 });
 
-// Example chips
-document.querySelectorAll('.example-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-        problemInput.value = chip.dataset.example;
+// Validation UI event listeners
+btnConfirmStatement.addEventListener('click', confirmProblemStatement);
+
+btnEditStatement.addEventListener('click', () => {
+    validationActionsView.classList.add('hidden');
+    validationActionsEdit.classList.remove('hidden');
+    problemStatementEdit.classList.remove('hidden');
+    problemStatementDisplay.classList.add('hidden');
+    problemStatementEditor.focus();
+});
+
+btnCancelEdit.addEventListener('click', () => {
+    validationActionsEdit.classList.add('hidden');
+    validationActionsView.classList.remove('hidden');
+    problemStatementEdit.classList.add('hidden');
+    problemStatementDisplay.classList.remove('hidden');
+});
+
+btnSaveEdit.addEventListener('click', saveEditedStatement);
+
+btnAddContext.addEventListener('click', async () => {
+    if (!currentSessionId || isLoading) return;
+    setLoading(true, 'Going back to add more context...');
+    try {
+        const response = await fetch('/api/go-back-checkpoint', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_id: currentSessionId }),
+        });
+        const data = await response.json();
+        if (data.error) {
+            showToast(`Error: ${data.error}`);
+        } else {
+            currentCheckpoint = data.current_checkpoint || 1;
+            hideValidationUI();
+            addMessage('assistant', data.response, data.current_phase, data.can_advance);
+            updateJourneyTracker(data.current_phase, currentCheckpoint);
+        }
+    } catch (err) {
+        showToast(`Failed: ${err.message}`);
+    } finally {
+        setLoading(false);
+    }
+});
+
+// Example pills
+document.querySelectorAll('.example-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+        problemInput.value = pill.dataset.example;
         problemInput.focus();
     });
 });
@@ -752,7 +1120,7 @@ async function init() {
     applySkillUI();
     await loadSessions();
     problemInput.focus();
-    console.log('Product Discovery Manager + Solution Architect loaded');
+    console.log('Product Discovery Manager loaded');
 }
 
 init();

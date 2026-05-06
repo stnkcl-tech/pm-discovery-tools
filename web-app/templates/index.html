@@ -3,83 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Product Discovery Manager + Solution Architect</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=3">
+    <title>Product Discovery Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=12">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
 </head>
 <body>
     <div id="app">
-        <!-- Header -->
-        <header class="header">
-            <div class="header-brand">
-                <div class="logo" id="header-logo">🔍</div>
-                <div class="brand-text">
-                    <h1 id="header-title">Product Discovery Manager</h1>
-                    <span class="subtitle" id="header-subtitle">Structured customer discovery powered by JTBD</span>
-                </div>
+        <!-- Left Sidebar: Journey -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-mark">◆</div>
+                <div class="brand-name">Discovery</div>
             </div>
-            <div class="header-actions">
-                <select id="skill-select" class="session-select" title="Switch skill">
-                    <option value="discovery">🔍 Discovery</option>
-                    <option value="solution">🛠️ Solution</option>
-                </select>
-                <select id="session-select" class="session-select">
-                    <option value="">New Session</option>
-                </select>
-                <button id="save-btn" class="btn btn-secondary" title="Save to folder" disabled>💾 Save</button>
-                <button id="generate-report-btn" class="btn btn-secondary" title="Generate HTML report" disabled>📄 Report</button>
-                <button id="export-btn" class="btn btn-secondary" title="Export as Markdown" disabled>📥 Export</button>
-                <button id="clear-btn" class="btn btn-ghost" title="Clear conversation">🗑️ Clear</button>
-                <button id="browse-btn" class="btn btn-ghost" title="Browse saved outputs">📂</button>
+            <nav class="journey-nav" id="journey-nav">
+                <!-- Populated by JS -->
+            </nav>
+            <div class="sidebar-footer">
+                <button class="link-btn" id="browse-btn">Browse saved</button>
             </div>
-        </header>
+        </aside>
 
-        <!-- Main Layout -->
-        <div class="main-layout">
-            <!-- Left Sidebar: Phase Tracker -->
-            <aside class="sidebar">
-                <div class="sidebar-header">
-                    <h3 id="sidebar-title">Discovery Phases</h3>
-                    <span id="current-phase-badge" class="phase-badge">Phase 1</span>
+        <!-- Main Area -->
+        <div class="main-area">
+            <!-- Header -->
+            <header class="top-header" id="top-header">
+                <div class="header-left">
+                    <div class="step-label" id="step-label">Product Discovery</div>
+                    <h1 class="step-title" id="step-title">What problem are you trying to solve today?</h1>
                 </div>
-                <div class="phases-list" id="phases-list">
-                    <!-- Phases populated dynamically by JS based on selected skill -->
+                <div class="header-right">
+                    <select id="session-select" class="session-select">
+                        <option value="">New Session</option>
+                    </select>
+                    <button id="save-btn" class="icon-btn" title="Save" disabled>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    </button>
+                    <button id="export-btn" class="icon-btn" title="Export" disabled>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    </button>
+                    <button id="clear-btn" class="icon-btn" title="Clear">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
                 </div>
-                <div class="sidebar-footer">
-                    <div class="hint">
-                        <span class="hint-icon">💡</span>
-                        <span class="hint-text" id="sidebar-hint">Kimi triggers the skill automatically based on your messages</span>
-                    </div>
-                </div>
-            </aside>
+            </header>
 
-            <!-- Center: Chat Area -->
-            <main class="chat-container">
+            <!-- Content -->
+            <main class="content" id="content">
                 <!-- Landing State -->
                 <div id="landing-state" class="landing-state">
-                    <div class="landing-content">
-                        <div class="landing-icon" id="landing-icon">🎯</div>
-                        <h2 id="landing-heading">What problem are you trying to solve?</h2>
-                        <p id="landing-desc">Describe your customer problem or product idea. The Product Discovery Manager will guide you through a structured discovery process.</p>
-                        <div class="landing-input-wrapper">
-                            <textarea 
-                                id="problem-input" 
-                                class="problem-input" 
-                                placeholder="e.g., Freelance designers struggle to find consistent, high-quality clients because existing platforms prioritize low-cost competition, which leads to unreliable income and burnout..."
-                                rows="5"
-                            ></textarea>
-                            <button id="start-btn" class="btn btn-primary btn-large">
-                                <span id="start-btn-text">Start Discovery</span>
-                                <span class="btn-arrow">→</span>
+                    <div class="landing-inner">
+                        <p class="landing-eyebrow">Step 1 of 5</p>
+                        <h2 class="landing-headline">What problem are you trying to solve today?</h2>
+                        <p class="landing-subtitle">Describe the customer problem or product idea you're exploring. Be as specific as you can — we'll refine it together.</p>
+                        
+                        <div class="landing-input-area">
+                            <!-- PDF Upload Zone (primary for solution mode) -->
+                            <div id="pdf-upload-zone" class="pdf-upload-zone hidden">
+                                <input type="file" id="pdf-input" accept=".pdf" hidden>
+                                <div class="pdf-upload-target" id="pdf-target">
+                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                                    <p class="pdf-upload-title">Upload your discovery PDF</p>
+                                    <p class="pdf-upload-hint">Drag & drop or click to browse</p>
+                                </div>
+                                <div class="pdf-file-info hidden" id="pdf-file-info">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                    <span class="pdf-file-name" id="pdf-file-name"></span>
+                                    <button class="btn-text" id="pdf-remove-btn">Remove</button>
+                                </div>
+                            </div>
+
+                            <!-- Text Input -->
+                            <div id="text-input-wrapper">
+                                <textarea 
+                                    id="problem-input" 
+                                    class="landing-textarea" 
+                                    placeholder="e.g. Freelance designers struggle to find consistent, high-quality clients because existing platforms prioritize low-cost competition..."
+                                    rows="4"
+                                ></textarea>
+                            </div>
+
+                            <div class="landing-actions">
+                                <button id="start-btn" class="btn-primary">
+                                    <span id="start-btn-label">Start Discovery</span>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="landing-alt">
+                            <span class="alt-divider">or</span>
+                            <button id="input-toggle" class="btn-text hidden">I don't have a PDF</button>
+                        </div>
+
+                        <div class="landing-alt-mode">
+                            <button id="solution-toggle" class="btn-text">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                                <span id="solution-toggle-text">Help me explore solutions</span>
                             </button>
                         </div>
+
                         <div class="landing-examples" id="landing-examples">
                             <span class="examples-label">Try an example:</span>
-                            <button class="example-chip" data-example="Small business owners waste hours manually reconciling invoices across multiple tools because no single platform integrates billing, accounting, and payment tracking seamlessly.">Invoice reconciliation</button>
-                            <button class="example-chip" data-example="Remote teams struggle to maintain culture and connection because existing communication tools are async-only and don't support spontaneous, informal interactions.">Remote team culture</button>
-                            <button class="example-chip" data-example="Parents find it hard to discover age-appropriate educational activities for their children because content platforms are not curated by child development experts.">Educational activities</button>
+                            <div class="examples-row">
+                                <button class="example-pill" data-example="Small business owners waste hours manually reconciling invoices across multiple tools because no single platform integrates billing, accounting, and payment tracking seamlessly.">Invoice reconciliation</button>
+                                <button class="example-pill" data-example="Remote teams struggle to maintain culture and connection because existing communication tools are async-only and don't support spontaneous, informal interactions.">Remote team culture</button>
+                                <button class="example-pill" data-example="Parents find it hard to discover age-appropriate educational activities for their children because content platforms are not curated by child development experts.">Educational activities</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -87,12 +118,14 @@
                 <!-- Chat Messages -->
                 <div id="chat-messages" class="chat-messages hidden">
                     <div class="welcome-message" id="welcome-message">
-                        <div class="message-avatar">🤖</div>
-                        <div class="message-content">
+                        <div class="message-avatar">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                        </div>
+                        <div class="message-body">
                             <div class="message-sender" id="welcome-sender">Product Discovery Manager</div>
                             <div class="message-text" id="welcome-text">
-                                <p>Hello! I'm your Product Discovery Manager. I'll guide you through a structured discovery process grounded in Cagan's product model principles and the Jobs-to-be-Done framework.</p>
-                                <p>Let's start by understanding your problem. Please describe the customer problem or need you're exploring, and I'll begin Phase 1: Problem Elicitation.</p>
+                                <p>Hello! I'm your Product Discovery Manager. I'll guide you through a structured discovery process grounded in Jobs-to-be-Done and Marty Cagan's product model principles.</p>
+                                <p>We'll work through 5 phases together — stopping at each checkpoint for your input before continuing.</p>
                             </div>
                         </div>
                     </div>
@@ -100,31 +133,68 @@
 
                 <!-- Loading Indicator -->
                 <div id="loading-indicator" class="loading-indicator hidden">
-                    <div class="loading-dots">
-                        <span></span>
-                        <span></span>
-                        <span></span>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
                     </div>
-                    <div class="loading-text">Kimi is analyzing your problem...</div>
+                    <span class="loading-text" id="loading-text">Analyzing your problem...</span>
+                    <span class="progress-percent" id="progress-percent">0%</span>
                 </div>
 
-                <!-- Input Area -->
+                <!-- Validation UI (for problem statement confirmation) -->
+                <div id="validation-ui" class="validation-ui hidden">
+                    <div class="validation-card">
+                        <div class="validation-header">
+                            <div class="validation-step">Step 2 of 2 — Problem Statement</div>
+                            <h3 class="validation-title">Review your problem statement</h3>
+                        </div>
+                        <div class="validation-body">
+                            <div class="problem-statement-box" id="problem-statement-display"></div>
+                            <div class="validation-follow-up" id="validation-follow-up"></div>
+                            <div class="problem-statement-edit hidden" id="problem-statement-edit">
+                                <label>Edit the problem statement</label>
+                                <textarea id="problem-statement-editor" rows="3"></textarea>
+                            </div>
+                        </div>
+                        <div class="validation-actions" id="validation-actions-view">
+                            <button class="btn-secondary" id="btn-edit-statement">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                Edit
+                            </button>
+                            <button class="btn-proceed" id="btn-confirm-statement">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                Confirm & Proceed
+                            </button>
+                        </div>
+                        <div class="validation-actions hidden" id="validation-actions-edit">
+                            <button class="btn-text" id="btn-cancel-edit">Cancel</button>
+                            <button class="btn-proceed" id="btn-save-edit">Save & Confirm</button>
+                        </div>
+                        <div class="validation-footer">
+                            <button class="btn-text" id="btn-add-context">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                Add more context
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Input -->
                 <div id="chat-input-area" class="chat-input-area hidden">
-                    <div class="input-wrapper">
+                    <div class="chat-input-wrapper">
                         <textarea 
                             id="chat-input" 
                             class="chat-input" 
                             placeholder="Type your response..."
                             rows="1"
                         ></textarea>
-                        <button id="send-btn" class="btn btn-primary btn-send">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="22" y1="2" x2="11" y2="13"></line>
-                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                            </svg>
+                        <button id="send-btn" class="send-btn">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                         </button>
                     </div>
-                    <div class="input-hint">Press Enter to send, Shift+Enter for new line</div>
+                    <div class="input-meta">
+                        <span class="input-hint">Press Enter to send · Shift+Enter for new line</span>
+                        <span class="checkpoint-badge hidden" id="checkpoint-badge">Checkpoint <span id="checkpoint-num">1</span></span>
+                    </div>
                 </div>
             </main>
         </div>
@@ -133,22 +203,25 @@
     <!-- Browse Modal -->
     <div id="browse-modal" class="modal hidden">
         <div class="modal-overlay"></div>
-        <div class="modal-content">
+        <div class="modal-panel">
             <div class="modal-header">
-                <h2 id="browse-modal-title">📂 Saved Outputs</h2>
-                <button id="close-modal" class="btn btn-ghost">✕</button>
+                <h2 id="browse-modal-title">Saved Outputs</h2>
+                <button id="close-modal" class="icon-btn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
             </div>
-            <div id="browse-list" class="discoveries-list">
+            <div id="browse-list" class="browse-list">
                 <p class="empty-state">No saved outputs yet. Start a session and save it!</p>
             </div>
         </div>
     </div>
 
-    <!-- Toast Notification -->
+    <!-- Toast -->
     <div id="toast" class="toast hidden">
         <span id="toast-message"></span>
     </div>
 
-    <script src="{{ url_for('static', filename='js/app.js') }}?v=3"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=12"></script>
+    <div class="app-footer">v12 · Product Discovery Manager</div>
 </body>
 </html>
