@@ -12,7 +12,7 @@ import uuid
 import time
 import subprocess
 from datetime import datetime
-from threading import Lock
+from threading import Lock, Thread
 
 from flask import Flask, render_template, request, jsonify, Response, send_from_directory
 from flask_cors import CORS
@@ -286,6 +286,23 @@ def user_wants_to_advance(text: str) -> bool:
     return any(sig in text_lower for sig in advance_signals)
 
 
+def response_contains_problem_statement(text: str) -> bool:
+    """Detect if a Kimi response contains a synthesized problem statement."""
+    text_lower = text.lower()
+    # Core pattern: [user type] struggle[s] to ... because ...
+    has_struggle = "struggle" in text_lower
+    has_because = "because" in text_lower
+    # Additional signals: blockquote, bold emphasis, confirmation question
+    has_blockquote = ">" in text
+    has_bold = "**" in text
+    has_confirms = (
+        "does this accurately capture" in text_lower
+        or "what should i adjust" in text_lower
+        or "synthesized problem statement" in text_lower
+    )
+    return has_struggle and has_because and (has_blockquote or has_bold or has_confirms)
+
+
 def strip_checkpoint_markers(text: str) -> str:
     """Remove checkpoint marker lines from Kimi responses for cleaner UI."""
     # Remove lines like "📍 CHECKPOINT 1" or "📍 CHECKPOINT 2 — ..."
@@ -295,19 +312,95 @@ def strip_checkpoint_markers(text: str) -> str:
     return text.strip()
 
 
+# Summary file paths — placed in parent folders to keep them separate from raw PDF materials
+DISCOVERY_SUMMARY_PATH = os.path.join(PROJECT_ROOT, "Discovery", "summary.md")
+SOLUTION_SUMMARY_PATH = os.path.join(PROJECT_ROOT, "Solutions", "summary.md")
+
+# Ingestion state
+ingestion_lock = Lock()
+ingestion_state = {
+    "in_progress": False,
+    "skill": None,
+    "current_file": None,
+    "stage": "idle",  # idle | extracting | summarizing
+}
+
+
+def _read_summary(skill: str = "discovery") -> str:
+    """Read the summary.md file if it exists, returning its contents or empty string."""
+    path = DISCOVERY_SUMMARY_PATH if skill == "discovery" else SOLUTION_SUMMARY_PATH
+    if os.path.exists(path):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return f.read()
+        except Exception:
+            pass
+    return ""
+
+
 def build_discovery_system_prompt(checkpoint: int = None) -> str:
     """Build the discovery skill-triggering system prompt."""
-    base = (
-        "You are a Product Discovery Manager following the structured discovery workflow "
-        "defined in the product-discovery-manager skill. Ground all your work in the project's "
-        "reference materials: read _context/ for core product model principles (Cagan's INSPIRED, "
-        "Product Model First Principles) and Discovery/_context/ for JTBD Framework and User Journey "
-        "Mapping guidance.\n\n"
-        "Use the user's own language in JTBD and problem statements. "
-        "Iterate rather than perfecting. Present drafts for validation. "
-        "If the user asks questions or requests changes, address them collaboratively. "
-        "Never rush to the next phase without the user's explicit confirmation.\n\n"
-    )
+    summary = _read_summary("discovery")
+
+    # CP1: lightweight prompt, no reference reading needed
+    if checkpoint == 1:
+        return (
+            "You are a Product Discovery Manager conducting structured problem elicitation.\n\n"
+            "Your ONLY task is to ask 3–5 structured probing questions about the user's problem. "
+            "Draw from these categories:\n"
+            "- Context: When does this problem occur? What is the user trying to accomplish?\n"
+            "- Frequency & severity: How often does this happen? What is the impact?\n"
+            "- Current behavior: What do users do today? What workarounds exist?\n"
+            "- User segment: Who experiences this most? Which persona or segment?\n"
+            "- Desired outcome: What would success look like? If solved, what changes?\n\n"
+            "ABSOLUTE RULES:\n"
+            "1. Ask ONLY questions. Do NOT synthesize a problem statement.\n"
+            "2. Do NOT do JTBD analysis or any other phase.\n"
+            "3. End your response with: 📍 CHECKPOINT 1\n"
+            "4. Then stop. The user will answer your questions or ask clarifying questions."
+        )
+
+    # CP2: isolated prompt — no file references, only conversation history.
+    # Kimi CLI sometimes reads referenced files and gets confused by JTBD content in the summary.
+    if checkpoint == 2:
+        return (
+            "You are a Product Discovery Manager at CHECKPOINT 2: Problem Statement Synthesis.\n\n"
+            "Based ONLY on the conversation history, synthesize a single confirmed problem statement "
+            "in this exact format:\n\n"
+            "> **[User type]** struggles to **[achieve goal]** because **[obstacle]**, which leads to **[negative consequence]**.\n\n"
+            "After presenting the statement, ask:\n"
+            '"Does this accurately capture the problem? What should I adjust?"\n\n'
+            "ABSOLUTE RULES:\n"
+            "1. Output ONLY the problem statement and the follow-up question.\n"
+            "2. Do NOT read any reference files.\n"
+            "3. Do NOT do JTBD analysis or any other phase.\n"
+            "4. Do NOT add preamble like 'Here is the problem statement'.\n"
+            "5. End your response with: 📍 CHECKPOINT 2"
+        )
+
+    # For CP3+, embed the summary directly in the prompt if available.
+    if summary:
+        base = (
+            "You are a Product Discovery Manager following the structured discovery workflow.\n\n"
+            "Use the user's own language in JTBD and problem statements. "
+            "Iterate rather than perfecting. Present drafts for validation. "
+            "If the user asks questions or requests changes, address them collaboratively. "
+            "Never rush to the next phase without the user's explicit confirmation.\n\n"
+            "The reference guide is located at Discovery/summary.md. Read ONLY this specific file. "
+            "Do not scan or read any other files in the directory.\n\n"
+        )
+    else:
+        base = (
+            "You are a Product Discovery Manager following the structured discovery workflow "
+            "defined in the product-discovery-manager skill. Ground all your work in the project's "
+            "reference materials: read _context/ for core product model principles (Cagan's INSPIRED, "
+            "Product Model First Principles) and Discovery/_context/ for JTBD Framework and User Journey "
+            "Mapping guidance.\n\n"
+            "Use the user's own language in JTBD and problem statements. "
+            "Iterate rather than perfecting. Present drafts for validation. "
+            "If the user asks questions or requests changes, address them collaboratively. "
+            "Never rush to the next phase without the user's explicit confirmation.\n\n"
+        )
 
     if checkpoint and checkpoint in DISCOVERY_CHECKPOINTS:
         cp = DISCOVERY_CHECKPOINTS[checkpoint]
@@ -324,13 +417,29 @@ def build_discovery_system_prompt(checkpoint: int = None) -> str:
 
 def build_solution_system_prompt() -> str:
     """Build the solution architect skill-triggering system prompt."""
+    summary = _read_summary("solution")
+
+    if summary:
+        base = (
+            "You are a Solution Architect — a senior software engineer adept in various tech stacks, "
+            "including no/low code solutions. Your objective is to find the quickest, easiest solution "
+            "with as little friction as possible for non-tech-savvy users.\n\n"
+            "You follow the structured solution workflow defined in the solution-architect skill.\n\n"
+            "The reference guide is located at Solutions/summary.md. Read ONLY this specific file. "
+            "Do not scan or read any other files in the directory.\n\n"
+        )
+    else:
+        base = (
+            "You are a Solution Architect — a senior software engineer adept in various tech stacks, "
+            "including no/low code solutions. Your objective is to find the quickest, easiest solution "
+            "with as little friction as possible for non-tech-savvy users.\n\n"
+            "You follow the structured solution workflow defined in the solution-architect skill. "
+            "Ground all your work in the project's reference materials: read Solutions/_context/ for "
+            "Opportunity Solution Trees, RICE Prioritization Framework, and T-Shirt Sizing guidance.\n\n"
+        )
+
     return (
-        "You are a Solution Architect — a senior software engineer adept in various tech stacks, "
-        "including no/low code solutions. Your objective is to find the quickest, easiest solution "
-        "with as little friction as possible for non-tech-savvy users.\n\n"
-        "You follow the structured solution workflow defined in the solution-architect skill. "
-        "Ground all your work in the project's reference materials: read Solutions/_context/ for "
-        "Opportunity Solution Trees, RICE Prioritization Framework, and T-Shirt Sizing guidance.\n\n"
+        base +
         "Your goal is to guide the user through 8 phases:\n"
         "1. Discovery Input - retrieve and synthesize discovery findings\n"
         "2. Barrier Analysis - identify what prevents users from completing each JTBD\n"
@@ -450,24 +559,17 @@ def api_chat():
                 checkpoint = 2
                 session["current_checkpoint"] = checkpoint
                 auto_advanced = True
-                validation_ui = True
-                can_go_back = True
-        elif checkpoint == 2:
+
+        # Also handle explicit advancement signals (e.g. user says "go ahead", "confirmed")
+        # Note: checkpoint markers are stripped before storage, so we skip the marker check
+        if not auto_advanced and user_wants_to_advance(message) and len(session["messages"]) >= 2 and checkpoint < 7:
+            checkpoint += 1
+            session["current_checkpoint"] = checkpoint
+
+        # Set validation UI flags based on FINAL checkpoint — never show validation UI if we've advanced past CP2
+        if checkpoint == 2:
             validation_ui = True
             can_go_back = True
-
-        # Also handle explicit advancement signals
-        if not auto_advanced and user_wants_to_advance(message) and len(session["messages"]) >= 2:
-            assistant_msgs = [m for m in session["messages"] if m["role"] == "assistant"]
-            if assistant_msgs:
-                last_assistant = assistant_msgs[-1]["content"].lower()
-                cp_marker = f"checkpoint {checkpoint}"
-                if cp_marker in last_assistant and checkpoint < 7:
-                    checkpoint += 1
-                    session["current_checkpoint"] = checkpoint
-                    if checkpoint == 2:
-                        validation_ui = True
-                        can_go_back = True
 
     # Build system prompt
     system_prompt = None
@@ -482,13 +584,23 @@ def api_chat():
 
     # If auto-advancing to CP2, append trigger message
     if auto_advanced:
-        history += "\n\nUser: The user has confirmed their answers and wants to proceed. Please synthesize a confirmed problem statement."
+        history += "\n\nUser: Synthesize a confirmed problem statement from our discussion. Do NOT proceed to any other phase."
 
     # Run Kimi
     assistant_reply = run_kimi(history, skill=skill, system_prompt=system_prompt)
 
     # Strip checkpoint markers from response for cleaner UI
     assistant_reply = strip_checkpoint_markers(assistant_reply)
+
+    # Intelligence: if Kimi spontaneously output a problem statement during synthesis,
+    # ensure we present it in the validation UI regardless of prior checkpoint state.
+    # Only trigger for CP1/CP2 — never re-show validation UI once user has advanced past CP2.
+    if skill == "discovery" and checkpoint <= 2 and response_contains_problem_statement(assistant_reply):
+        if checkpoint < 2:
+            checkpoint = 2
+            session["current_checkpoint"] = checkpoint
+        validation_ui = True
+        can_go_back = True
 
     assistant_phase = detect_phase(assistant_reply, skill)
     current_phase = max(user_phase, assistant_phase, session["current_phase"])
@@ -939,6 +1051,160 @@ def upload_solution_pdf():
                 os.remove(temp_path)
             except Exception:
                 pass
+
+
+# ── Material Ingestion ─────────────────────────────────────────────────────
+
+def _extract_pdf_text_from_dir(directory: str, max_chars: int = 50000) -> str:
+    """Extract text from all PDFs in a directory, up to max_chars total."""
+    global ingestion_state
+    if not HAS_PYPDF2 or not os.path.isdir(directory):
+        return ""
+    texts = []
+    total = 0
+    for filename in sorted(os.listdir(directory)):
+        if not filename.lower().endswith(".pdf"):
+            continue
+        with ingestion_lock:
+            ingestion_state["current_file"] = filename
+            ingestion_state["stage"] = "extracting"
+        filepath = os.path.join(directory, filename)
+        try:
+            with open(filepath, "rb") as f:
+                reader = PyPDF2.PdfReader(f)
+                for page in reader.pages:
+                    page_text = page.extract_text() or ""
+                    if page_text:
+                        texts.append(f"--- {filename} ---\n{page_text}")
+                        total += len(page_text)
+                        if total >= max_chars:
+                            break
+        except Exception:
+            continue
+        if total >= max_chars:
+            break
+    return "\n\n".join(texts)
+
+
+def _generate_summary(skill: str, raw_text: str) -> str:
+    """Call Kimi to summarize extracted reference material text into a summary.md."""
+    if skill == "discovery":
+        prompt = (
+            "You are a Product Discovery Manager. I've extracted text from reference materials on "
+            "product discovery frameworks (Cagan's INSPIRED, Product Model First Principles, "
+            "Jobs-to-be-Done, User Journey Mapping).\n\n"
+            "Write a concise, structured markdown summary that serves as a quick-reference guide for "
+            "conducting product discovery sessions. Include:\n"
+            "1. Core principles from each framework (2-3 sentences each)\n"
+            "2. Phase-by-phase checklist with key questions to ask\n"
+            "3. Common templates (problem statement format, JTBD format, journey map columns)\n"
+            "4. Decision criteria for moving between phases\n\n"
+            "Keep it under 2000 words. Use markdown headers and bullet points.\n\n"
+            "--- EXTRACTED MATERIAL TEXT ---\n"
+            + raw_text[:40000]
+        )
+    else:
+        prompt = (
+            "You are a Solution Architect. I've extracted text from reference materials on "
+            "solution architecture (Opportunity Solution Trees, RICE Prioritization, T-Shirt Sizing).\n\n"
+            "Write a concise, structured markdown summary that serves as a quick-reference guide. Include:\n"
+            "1. Core principles for each framework\n"
+            "2. Step-by-step process for each phase\n"
+            "3. Common templates and scoring criteria\n"
+            "4. Decision criteria for recommending solutions\n\n"
+            "Keep it under 1500 words. Use markdown headers and bullet points.\n\n"
+            "--- EXTRACTED MATERIAL TEXT ---\n"
+            + raw_text[:40000]
+        )
+
+    system = (
+        "You are a technical writer creating a concise reference guide. "
+        "Distill the key frameworks, templates, and decision criteria into a well-structured markdown document. "
+        "Preserve the most actionable content while removing verbose explanations."
+    )
+    return run_kimi(prompt, skill=skill, system_prompt=system, timeout=600)
+
+
+def _run_ingestion(skill: str):
+    """Background thread: extract PDF text and generate summary.md for one skill."""
+    global ingestion_state
+    try:
+        if skill == "discovery":
+            dirs = [
+                os.path.join(PROJECT_ROOT, "_context"),
+                os.path.join(PROJECT_ROOT, "Discovery", "_context"),
+            ]
+            path = DISCOVERY_SUMMARY_PATH
+        else:
+            dirs = [
+                os.path.join(PROJECT_ROOT, "_context"),
+                os.path.join(PROJECT_ROOT, "Solutions", "_context"),
+            ]
+            path = SOLUTION_SUMMARY_PATH
+
+        raw_text = "\n\n".join(_extract_pdf_text_from_dir(d) for d in dirs)
+        if raw_text:
+            with ingestion_lock:
+                ingestion_state["current_file"] = None
+                ingestion_state["stage"] = "summarizing"
+            summary = _generate_summary(skill, raw_text)
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(summary)
+            # Safety net: if Kimi CLI wrote a summary.md to the work dir (project root), delete it
+            root_summary = os.path.join(PROJECT_ROOT, "summary.md")
+            if os.path.exists(root_summary):
+                try:
+                    os.remove(root_summary)
+                except Exception:
+                    pass
+    except Exception as e:
+        print(f"[Ingestion Error] {e}")
+    finally:
+        with ingestion_lock:
+            ingestion_state["in_progress"] = False
+            ingestion_state["skill"] = None
+            ingestion_state["current_file"] = None
+            ingestion_state["stage"] = "idle"
+
+
+@app.route("/api/ingest-status", methods=["GET"])
+def ingest_status():
+    """Check whether reference material summaries have been generated."""
+    discovery_done = os.path.exists(DISCOVERY_SUMMARY_PATH)
+    solution_done = os.path.exists(SOLUTION_SUMMARY_PATH)
+    with ingestion_lock:
+        state = dict(ingestion_state)
+    return jsonify({
+        "discovery_ingested": discovery_done,
+        "solution_ingested": solution_done,
+        "all_ingested": discovery_done and solution_done,
+        "in_progress": state["in_progress"],
+        "current_file": state["current_file"],
+        "stage": state["stage"],
+        "skill": state["skill"],
+    })
+
+
+@app.route("/api/ingest-materials", methods=["POST"])
+def ingest_materials():
+    """Trigger background ingestion of reference materials into summary.md files."""
+    global ingestion_state
+    data = request.get_json(force=True) or {}
+    skill = data.get("skill", "discovery")
+    if skill not in ("discovery", "solution"):
+        return jsonify({"error": "skill must be 'discovery' or 'solution'"}), 400
+
+    with ingestion_lock:
+        if ingestion_state["in_progress"]:
+            return jsonify({"status": "already_in_progress", "skill": ingestion_state["skill"]})
+        ingestion_state["in_progress"] = True
+        ingestion_state["skill"] = skill
+        ingestion_state["current_file"] = None
+        ingestion_state["stage"] = "idle"
+
+    thread = Thread(target=_run_ingestion, args=(skill,), daemon=True)
+    thread.start()
+    return jsonify({"status": "started", "skill": skill})
 
 
 # ── Main ───────────────────────────────────────────────────────────────────

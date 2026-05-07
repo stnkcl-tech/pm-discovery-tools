@@ -1,6 +1,11 @@
 # AI-PM-Skills Project
 
-> **CRITICAL: At the start of EVERY new session, read `references.md` in the project root first.** It contains the full design history, architecture decisions, known bugs, and mistakes to avoid. Do not make changes without consulting it.
+> **CRITICAL: At the start of EVERY new session, read these files in order:**
+> 1. **`references.md`** — design history, architecture, known issues
+> 2. **`mistakes.md`** — mistakes made and lessons learned (read BEFORE implementing)
+> 3. **`design-preferences.md`** — user design preferences (read BEFORE designing)
+>
+> Do not make changes without consulting all three.
 
 ---
 
@@ -105,7 +110,7 @@ See `references.md` Section 2 for full details.
 
 ## Development Conventions
 
-1. **Always read `references.md` first** in every new session.
+1. **Always read `references.md`, `mistakes.md`, and `design-preferences.md` first** in every new session, in that order.
 2. **Bump static file versions** in `index.html` query strings (`?v=N`) when changing CSS/JS to bust browser cache.
 3. **Background tasks need `timeout=86400`** — the Flask dev server runs indefinitely.
 4. **PDF documents** live in `_context/` folders, not at directory roots.

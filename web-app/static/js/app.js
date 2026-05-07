@@ -148,6 +148,13 @@ const btnCancelEdit = document.getElementById('btn-cancel-edit');
 const btnSaveEdit = document.getElementById('btn-save-edit');
 const btnAddContext = document.getElementById('btn-add-context');
 
+// Onboarding elements
+const onboardingScreen = document.getElementById('onboarding-screen');
+const onboardingFill = document.getElementById('onboarding-fill');
+const onboardingHint = document.getElementById('onboarding-hint');
+const onboardingTitle = document.querySelector('.onboarding-title');
+const onboardingSubtitle = document.querySelector('.onboarding-subtitle');
+
 // PDF state
 let selectedPdfFile = null;
 let solutionInputMode = 'pdf'; // 'pdf' | 'text'
@@ -197,18 +204,19 @@ function startProgressBar() {
     if (progressInterval) clearInterval(progressInterval);
     if (window.messageInterval) clearInterval(window.messageInterval);
     progressInterval = setInterval(() => {
-        if (progress < 50) {
-            progress += Math.random() * 1.8;
-            if (progress > 50) progress = 50;
-        } else if (progress < 80) {
-            progress += Math.random() * 1.2;
-            if (progress > 80) progress = 80;
-        } else if (progress < 95) {
-            progress += Math.random() * 3;
-            if (progress > 95) progress = 95;
+        if (progress < 30) {
+            // Fast start so quick responses don't feel like they jump from single digits
+            progress += Math.random() * 4;
+            if (progress > 30) progress = 30;
+        } else if (progress < 60) {
+            progress += Math.random() * 2.5;
+            if (progress > 60) progress = 60;
+        } else if (progress < 85) {
+            progress += Math.random() * 1.5;
+            if (progress > 85) progress = 85;
         } else {
-            // Fast finish from 95% to 99.99% so it doesn't stall at 100%
-            progress += Math.random() * 6;
+            // Fast finish from 85% to 99.99% so it doesn't stall at 100%
+            progress += Math.random() * 4;
             if (progress > 99.99) progress = 99.99;
         }
         progressFill.style.width = progress + '%';
@@ -237,6 +245,17 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+function looksLikeProblemStatementFn(text) {
+    if (!text) return false;
+    const lower = text.toLowerCase();
+    const hasStruggle = lower.includes('struggle');
+    const hasBecause = lower.includes('because');
+    const hasBlockquote = text.includes('>');
+    const hasBold = text.includes('**');
+    const hasConfirms = lower.includes('does this accurately capture') || lower.includes('what should i adjust');
+    return hasStruggle && hasBecause && (hasBlockquote || hasBold || hasConfirms);
 }
 
 function markdownToHtml(markdown) {
@@ -414,7 +433,11 @@ function setSolutionInputMode(mode) {
     }
 }
 
-function switchSkill(skill) {
+async function switchSkill(skill) {
+    if (skill === 'solution') {
+        const ready = await ensureSolutionIngested();
+        if (!ready) return;
+    }
     currentSkill = skill;
     applySkillUI();
     showLandingInterface();
@@ -433,8 +456,9 @@ function showValidationUI(content) {
     let cleaned = content.replace(/📍\s*CHECKPOINT\s*\d+[^\n]*/gi, '').trim();
 
     // 2. Strip common preamble patterns the model sometimes adds
-    cleaned = cleaned.replace(/^Here's the problem statement based on our discussion\.?\s*[\n\r]+/i, '');
+    cleaned = cleaned.replace(/^(Here[']?s|Here is)\s+(the\s+)?(synthesized\s+)?problem statement[^\n]*\.?\s*[\n\r]+/i, '');
     cleaned = cleaned.replace(/^Based on our discussion, here[']?s the problem statement\.?\s*[\n\r]+/i, '');
+    cleaned = cleaned.replace(/^(Thank you for the detailed answers[^\n]*[\n\r]+)+/i, '');
 
     // 3. Split into paragraphs and identify statement vs follow-up
     const parts = cleaned.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
@@ -658,6 +682,10 @@ async function sendMessage(message) {
 
             if (data.validation_ui) {
                 showValidationUI(data.response);
+            } else if (currentCheckpoint <= 2 && looksLikeProblemStatementFn(data.response)) {
+                // Safety net: backend missed the problem statement detection (only for CP1/CP2)
+                currentCheckpoint = 2;
+                showValidationUI(data.response);
             } else {
                 addMessage('assistant', data.response, data.current_phase, data.can_advance);
             }
@@ -739,9 +767,11 @@ async function loadSession(sessionId) {
         currentCheckpoint = session.current_checkpoint || 1;
         updateJourneyTracker(session.current_phase, currentCheckpoint);
 
-        // If session was in checkpoint 2, show validation UI with last assistant message
+        // If session was in checkpoint 2 (or last message looks like a problem statement),
+        // show validation UI with last assistant message
         const lastAssistantMsg = session.messages.filter(m => m.role === 'assistant').pop();
-        if (currentCheckpoint === 2 && lastAssistantMsg) {
+        const looksLikeProblemStatement = lastAssistantMsg && currentCheckpoint <= 2 && looksLikeProblemStatementFn(lastAssistantMsg.content);
+        if ((currentCheckpoint === 2 || looksLikeProblemStatement) && lastAssistantMsg) {
             showValidationUI(lastAssistantMsg.content);
         } else {
             showChatInterface();
@@ -1114,10 +1144,130 @@ document.querySelectorAll('.example-pill').forEach(pill => {
     });
 });
 
+// ── Onboarding / Ingestion ───────────────────────────────────────────────
+
+let onboardingInterval = null;
+
+function startOnboardingProgress() {
+    let progress = 0;
+    onboardingFill.style.width = '0%';
+    if (onboardingInterval) clearInterval(onboardingInterval);
+    onboardingInterval = setInterval(() => {
+        if (progress < 85) {
+            progress += Math.random() * 3;
+            if (progress > 85) progress = 85;
+        } else {
+            progress += Math.random() * 1;
+            if (progress > 98) progress = 98;
+        }
+        onboardingFill.style.width = progress + '%';
+    }, 600);
+}
+
+function stopOnboardingProgress() {
+    if (onboardingInterval) clearInterval(onboardingInterval);
+    onboardingFill.style.width = '100%';
+}
+
+async function checkIngestionStatus() {
+    try {
+        const response = await fetch('/api/ingest-status');
+        const data = await response.json();
+        if (data.discovery_ingested) {
+            onboardingScreen.classList.add('hidden');
+            return;
+        }
+        // Show onboarding for discovery ingestion only
+        onboardingScreen.classList.remove('hidden');
+        onboardingTitle.textContent = 'Product Discovery Manager';
+        onboardingSubtitle.textContent = 'Setting up your discovery workspace...';
+        startOnboardingProgress();
+        await fetch('/api/ingest-materials', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ skill: 'discovery' }),
+        });
+        // Poll until discovery complete
+        const poll = setInterval(async () => {
+            try {
+                const r = await fetch('/api/ingest-status');
+                const d = await r.json();
+                // Update hint with current file
+                if (d.current_file) {
+                    onboardingHint.textContent = `Processing ${d.current_file}...`;
+                } else if (d.stage === 'summarizing') {
+                    onboardingHint.textContent = 'Summarizing reference materials...';
+                }
+                if (d.discovery_ingested) {
+                    clearInterval(poll);
+                    stopOnboardingProgress();
+                    setTimeout(() => {
+                        onboardingScreen.classList.add('hidden');
+                    }, 800);
+                }
+            } catch (e) {
+                // Keep polling
+            }
+        }, 2000);
+    } catch (err) {
+        onboardingScreen.classList.add('hidden');
+        console.error('Ingestion status check failed:', err);
+    }
+}
+
+async function ensureSolutionIngested() {
+    try {
+        const response = await fetch('/api/ingest-status');
+        const data = await response.json();
+        if (data.solution_ingested) {
+            return true;
+        }
+        // Show onboarding for solution ingestion
+        onboardingScreen.classList.remove('hidden');
+        onboardingTitle.textContent = 'Solution Architect';
+        onboardingSubtitle.textContent = 'Preparing solution frameworks...';
+        onboardingHint.textContent = 'Ingesting reference materials so solutioning sessions are fast and lightweight.';
+        startOnboardingProgress();
+        await fetch('/api/ingest-materials', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ skill: 'solution' }),
+        });
+        return new Promise((resolve) => {
+            const poll = setInterval(async () => {
+                try {
+                    const r = await fetch('/api/ingest-status');
+                    const d = await r.json();
+                    if (d.current_file) {
+                        onboardingHint.textContent = `Processing ${d.current_file}...`;
+                    } else if (d.stage === 'summarizing') {
+                        onboardingHint.textContent = 'Summarizing reference materials...';
+                    }
+                    if (d.solution_ingested) {
+                        clearInterval(poll);
+                        stopOnboardingProgress();
+                        setTimeout(() => {
+                            onboardingScreen.classList.add('hidden');
+                            resolve(true);
+                        }, 800);
+                    }
+                } catch (e) {
+                    // Keep polling
+                }
+            }, 2000);
+        });
+    } catch (err) {
+        onboardingScreen.classList.add('hidden');
+        console.error('Solution ingestion check failed:', err);
+        return true; // Allow switch to proceed even if ingestion fails
+    }
+}
+
 // ── Init ───────────────────────────────────────────────────────────────────
 
 async function init() {
     applySkillUI();
+    await checkIngestionStatus();
     await loadSessions();
     problemInput.focus();
     console.log('Product Discovery Manager loaded');
