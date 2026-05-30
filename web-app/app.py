@@ -386,16 +386,15 @@ def build_discovery_system_prompt(checkpoint: int = None) -> str:
             "Iterate rather than perfecting. Present drafts for validation. "
             "If the user asks questions or requests changes, address them collaboratively. "
             "Never rush to the next phase without the user's explicit confirmation.\n\n"
-            "The reference guide is located at Discovery/summary.md. Read ONLY this specific file. "
-            "Do not scan or read any other files in the directory.\n\n"
+            "--- REFERENCE GUIDE ---\n"
+            f"{summary}\n"
+            "--- END REFERENCE GUIDE ---\n\n"
         )
     else:
         base = (
             "You are a Product Discovery Manager following the structured discovery workflow "
-            "defined in the product-discovery-manager skill. Ground all your work in the project's "
-            "reference materials: read _context/ for core product model principles (Cagan's INSPIRED, "
-            "Product Model First Principles) and Discovery/_context/ for JTBD Framework and User Journey "
-            "Mapping guidance.\n\n"
+            "defined in the product-discovery-manager skill. "
+            "Ground your work in product model principles, JTBD, and User Journey Mapping.\n\n"
             "Use the user's own language in JTBD and problem statements. "
             "Iterate rather than perfecting. Present drafts for validation. "
             "If the user asks questions or requests changes, address them collaboratively. "
@@ -425,8 +424,9 @@ def build_solution_system_prompt() -> str:
             "including no/low code solutions. Your objective is to find the quickest, easiest solution "
             "with as little friction as possible for non-tech-savvy users.\n\n"
             "You follow the structured solution workflow defined in the solution-architect skill.\n\n"
-            "The reference guide is located at Solutions/summary.md. Read ONLY this specific file. "
-            "Do not scan or read any other files in the directory.\n\n"
+            "--- REFERENCE GUIDE ---\n"
+            f"{summary}\n"
+            "--- END REFERENCE GUIDE ---\n\n"
         )
     else:
         base = (
@@ -434,8 +434,7 @@ def build_solution_system_prompt() -> str:
             "including no/low code solutions. Your objective is to find the quickest, easiest solution "
             "with as little friction as possible for non-tech-savvy users.\n\n"
             "You follow the structured solution workflow defined in the solution-architect skill. "
-            "Ground all your work in the project's reference materials: read Solutions/_context/ for "
-            "Opportunity Solution Trees, RICE Prioritization Framework, and T-Shirt Sizing guidance.\n\n"
+            "Ground your work in Opportunity Solution Trees, RICE Prioritization, and T-Shirt Sizing frameworks.\n\n"
         )
 
     return (

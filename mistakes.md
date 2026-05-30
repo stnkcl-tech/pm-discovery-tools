@@ -86,4 +86,11 @@
 
 ---
 
-*Last updated: 2026-05-06*
+### Mistake 17: API Content Filter Triggered by File-Reading Instructions
+- **What:** The Kimi API's content filter rejected prompts containing "Do not scan or read any other files in the directory." as "high risk" (exit code 1, error 400). This caused every CP3+ discovery and solution request to fail.
+- **Fix:** Removed all file-reading restrictions from system prompts. Replaced "read this file, don't read others" with embedding the summary directly in the prompt (or deleting the garbage summary.md and falling back to a simpler prompt).
+- **Lesson:** Never use defensive/restrictive language like "Do not scan/read files" in prompts. APIs flag it as prompt injection. Embed reference content directly instead of asking the model to read files.
+
+---
+
+*Last updated: 2026-05-30*
